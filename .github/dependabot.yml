@@ -1,0 +1,41 @@
+version: 2
+
+updates:
+  # Enable version updates for Go modules in apparmor directory
+  - package-ecosystem: "gomod"
+    directory: "/apparmor"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "apparmor"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "apparmor"
+
+  # Enable version updates for Go modules in seccomp directory
+  - package-ecosystem: "gomod"
+    directory: "/seccomp"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "seccomp"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "seccomp"
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github-actions"
