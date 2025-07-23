@@ -66,3 +66,38 @@ jobs:
 
     - name: Run tests
       run: make test
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: stable
+
+    - name: golangci-lint (apparmor)
+      id: lint-apparmor
+      uses: golangci/golangci-lint-action@v8
+      with:
+        version: latest
+        working-directory: apparmor
+      continue-on-error: true
+
+    - name: golangci-lint (seccomp)
+      id: lint-seccomp
+      uses: golangci/golangci-lint-action@v8
+      with:
+        version: latest
+        working-directory: seccomp
+      continue-on-error: true
+
+    - name: Check lint results
+      if: steps.lint-apparmor.outcome == 'failure' || steps.lint-seccomp.outcome == 'failure'
+      run: |
+        echo "One or more lint checks failed"
+        exit 1
