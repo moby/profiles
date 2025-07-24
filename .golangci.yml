@@ -6,14 +6,13 @@ run:
 
 formatters:
   enable:
-    - gofmt
+    - gofumpt
     - goimports
 
 linters:
   enable:
     - asasalint                 # Detects "[]any" used as argument for variadic "func(...any)".
     - copyloopvar               # Detects places where loop variables are copied.
-    - depguard
     - dogsled                   # Detects assignments with too many blank identifiers.
     - dupword                   # Detects duplicate words.
     - durationcheck             # Detect cases where two time.Duration values are being multiplied in possibly erroneous ways.
@@ -46,17 +45,7 @@ linters:
     - usestdlibvars             # Detects the possibility to use variables/constants from the Go standard library.
     - wastedassign              # Detects wasted assignment statements.
 
-  disable:
-    - errcheck
-    - depguard                  # TODO(austinvazquez): Enable this linter after fixing the issues it reports.
-
   settings:
-    errorlint:
-      # Check whether fmt.Errorf uses the %w verb for formatting errors.
-      errorf: false
-      # See the https://github.com/polyfloyd/go-errorlint for caveats.
-      asserts: false
-
     gosec:
       excludes:
         - G304 # G304: Potential file inclusion via variable.

@@ -73,16 +73,16 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version: stable
 
     - name: golangci-lint (apparmor)
       id: lint-apparmor
-      uses: golangci/golangci-lint-action@v8
+      uses: golangci/golangci-lint-action@v9
       with:
         version: latest
         working-directory: apparmor
@@ -90,7 +90,7 @@ jobs:
 
     - name: golangci-lint (seccomp)
       id: lint-seccomp
-      uses: golangci/golangci-lint-action@v8
+      uses: golangci/golangci-lint-action@v9
       with:
         version: latest
         working-directory: seccomp
@@ -101,3 +101,18 @@ jobs:
       run: |
         echo "One or more lint checks failed"
         exit 1
+
+  check-codegen:
+    name: Check seccomp code generation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: stable
+
+      - name: Validate seccomp code generation
+        run: make validate-codegen

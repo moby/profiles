@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # Makefile for building and testing Moby profiles packages
+PROJECT_ROOT ?= $(shell pwd)
+SCRIPTDIR ?= $(PROJECT_ROOT)/script
 PACKAGES ?= apparmor seccomp
 CROSSBUILDS ?= linux/arm linux/arm64 linux/amd64 linux/ppc64le linux/s390x
 
@@ -32,6 +34,11 @@ crossbuild: ## cross build all modules
 test: ## run tests for all modules
 test: CMD=go test -v ./...
 test: foreach
+
+.PHONY: validate-codegen
+validate-codegen: ## validate code generation for seccomp
+	@echo "Validating code generation..."
+	bash $(SCRIPTDIR)/validate/default-seccomp
 
 .PHONY: help
 help: ## display this help message
