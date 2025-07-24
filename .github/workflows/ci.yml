@@ -82,3 +82,19 @@ jobs:
       run: |
         echo "One or more lint checks failed"
         exit 1
+
+  check-codegen:
+    name: Check seccomp code generation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Validate seccomp code generation
+        run: make validate-codegen
+ 
