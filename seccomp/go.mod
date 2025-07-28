@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: Apache-2.0
+
 module github.com/moby/profiles/seccomp
 
 go 1.23.0
