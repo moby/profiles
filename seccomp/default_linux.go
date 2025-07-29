@@ -283,7 +283,7 @@ func DefaultProfile() *Seccomp {
 					"rename",
 					"renameat",
 					"renameat2",
-					"request_key"
+					"request_key",
 					"restart_syscall",
 					"riscv_hwprobe", // kernel v6.12, libseccomp v2.6.0
 					"rmdir",
