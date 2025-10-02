@@ -649,6 +649,34 @@ func DefaultProfile() *Seccomp {
 		{
 			LinuxSyscall: specs.LinuxSyscall{
 				Names: []string{
+					"unshare",
+				},
+				Action: specs.ActAllow,
+				Args: []specs.LinuxSeccompArg{
+					{
+						Index:    0,
+						Value:    unix.CLONE_NEWNS,
+						ValueTwo: 0,
+						Op:       specs.OpMaskedEqual,
+					},
+					{
+						Index:    0,
+						Value:    unix.CLONE_NEWUTS,
+						ValueTwo: 0,
+						Op:       specs.OpMaskedEqual,
+					},
+					{
+						Index:    0,
+						Value:    unix.CLONE_NEWUSER,
+						ValueTwo: 0,
+						Op:       specs.OpMaskedEqual,
+					},
+				},
+			},
+		},
+		{
+			LinuxSyscall: specs.LinuxSyscall{
+				Names: []string{
 					"clone",
 				},
 				Action: specs.ActAllow,
