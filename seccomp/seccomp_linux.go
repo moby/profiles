@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
+	"slices"
 
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
@@ -63,17 +64,6 @@ var goToNative = map[string]string{
 	"s390x":       "s390x",
 }
 
-// inSlice tests whether a string is contained in a slice of strings or not.
-// Comparison is case sensitive
-func inSlice(slice []string, s string) bool {
-	for _, ss := range slice {
-		if s == ss {
-			return true
-		}
-	}
-	return false
-}
-
 func setupSeccomp(config *Seccomp, rs *specs.Spec) (*specs.LinuxSeccomp, error) {
 	if config == nil {
 		return nil, nil
@@ -121,13 +111,13 @@ Loop:
 		}
 		if call.Excludes != nil {
 			if len(call.Excludes.Arches) > 0 {
-				if inSlice(call.Excludes.Arches, arch) {
+				if slices.Contains(call.Excludes.Arches, arch) {
 					continue Loop
 				}
 			}
 			if len(call.Excludes.Caps) > 0 {
 				for _, c := range call.Excludes.Caps {
-					if inSlice(rs.Process.Capabilities.Bounding, c) {
+					if slices.Contains(rs.Process.Capabilities.Bounding, c) {
 						continue Loop
 					}
 				}
@@ -142,13 +132,13 @@ Loop:
 		}
 		if call.Includes != nil {
 			if len(call.Includes.Arches) > 0 {
-				if !inSlice(call.Includes.Arches, arch) {
+				if !slices.Contains(call.Includes.Arches, arch) {
 					continue Loop
 				}
 			}
 			if len(call.Includes.Caps) > 0 {
 				for _, c := range call.Includes.Caps {
-					if !inSlice(rs.Process.Capabilities.Bounding, c) {
+					if !slices.Contains(rs.Process.Capabilities.Bounding, c) {
 						continue Loop
 					}
 				}
