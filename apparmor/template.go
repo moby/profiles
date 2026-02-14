@@ -11,7 +11,17 @@ package apparmor
 //       profile will likely affect libpod and containerd).
 
 // baseTemplate defines the default apparmor profile for containers.
+//
+// It explicitly sets the AppArmor ABI to 3.0. In AppArmor ABI higher than 4.0,
+// "network" no longer includes "network unix", resulting in access to unix sockets
+// being denied. We use ABI 3.0 to account for some LTS distros that do not
+// yet support ABI 4.0.
+//
+// See https://gitlab.com/apparmor/apparmor/-/issues/561
+// And https://github.com/containerd/containerd/issues/12726
 const baseTemplate = `
+abi <abi/3.0>,
+
 {{range $value := .Imports}}
 {{$value}}
 {{end}}
