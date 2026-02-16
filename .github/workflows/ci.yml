@@ -1,0 +1,118 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  project-checks:
+    name: Project Checks
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v6
+
+    - name: Set up Go
+      uses: actions/setup-go@v6
+      with:
+        go-version: "stable"
+
+    - name: Install ltag
+      run: go install github.com/containerd/ltag@latest
+
+    - name: Run file header checks
+      run: ltag --check -t "./script/validate/template" -v
+
+  crossbuild:
+    name: Cross Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ["1.23", "oldstable", "stable"]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v6
+
+    - name: Set up Go
+      uses: actions/setup-go@v6
+      with:
+        go-version: ${{ matrix.go-version }}
+
+    - name: Cross build
+      run: make crossbuild
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ["1.23", "oldstable", "stable"]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v6
+
+    - name: Set up Go
+      uses: actions/setup-go@v6
+      with:
+        go-version: ${{ matrix.go-version }}
+
+    - name: Run tests
+      run: make test
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v6
+
+    - name: Set up Go
+      uses: actions/setup-go@v6
+      with:
+        go-version: stable
+
+    - name: golangci-lint (apparmor)
+      id: lint-apparmor
+      uses: golangci/golangci-lint-action@v9
+      with:
+        version: latest
+        working-directory: apparmor
+      continue-on-error: true
+
+    - name: golangci-lint (seccomp)
+      id: lint-seccomp
+      uses: golangci/golangci-lint-action@v9
+      with:
+        version: latest
+        working-directory: seccomp
+      continue-on-error: true
+
+    - name: Check lint results
+      if: steps.lint-apparmor.outcome == 'failure' || steps.lint-seccomp.outcome == 'failure'
+      run: |
+        echo "One or more lint checks failed"
+        exit 1
+
+  check-codegen:
+    name: Check seccomp code generation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: stable
+
+      - name: Validate seccomp code generation
+        run: make validate-codegen

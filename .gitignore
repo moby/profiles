@@ -1,0 +1,17 @@
+# If you want to ignore files created by your editor/tools, please consider a
+# [global .gitignore](https://help.github.com/articles/ignoring-files).
+
+*~
+*.bak
+*.orig
+.*.swp
+.DS_Store
+thumbs.db
+
+# local repository customization
+.envrc
+.bashrc
+.editorconfig
+
+# Go workspace file
+go.work
