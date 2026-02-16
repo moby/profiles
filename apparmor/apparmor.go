@@ -104,7 +104,9 @@ func isLoaded(name string, fileName string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
@@ -128,7 +130,7 @@ func loadProfile(profilePath string) error {
 	c.Dir = ""
 
 	if output, err := c.CombinedOutput(); err != nil {
-		return fmt.Errorf("running '%s' failed with output: %s\nerror: %v", c, output, err)
+		return fmt.Errorf("running '%s' failed with output: %s\nerror: %w", c, output, err)
 	}
 
 	return nil
