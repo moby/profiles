@@ -11,7 +11,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"path"
+	"path/filepath"
 	"strings"
 	"text/template"
 )
@@ -53,7 +53,7 @@ func (p *profileData) generateDefault(out io.Writer) error {
 
 // macroExists checks if the passed macro exists.
 func macroExists(m string) bool {
-	_, err := os.Stat(path.Join(profileDirectory, m))
+	_, err := os.Stat(filepath.Join(profileDirectory, m))
 	return err == nil
 }
 
@@ -63,7 +63,7 @@ func InstallDefault(name string) error {
 	// Figure out the daemon profile.
 	daemonProfile := "unconfined"
 	if currentProfile, err := os.ReadFile("/proc/self/attr/current"); err == nil {
-		// Normally profiles are suffixed by " (enforcing)" or similar. AppArmor
+		// Normally profiles are suffixed by " (enforce)" or similar. AppArmor
 		// profiles cannot contain spaces so this doesn't restrict daemon profile
 		// names.
 		if profile, _, _ := strings.Cut(string(currentProfile), " "); profile != "" {
@@ -72,14 +72,14 @@ func InstallDefault(name string) error {
 	}
 
 	// Install to a temporary directory.
-	tmpFile, err := os.CreateTemp("", name)
+	tmpFile, err := os.CreateTemp("", "apparmor-profile-")
 	if err != nil {
 		return err
 	}
 
 	defer func() {
 		_ = tmpFile.Close()
-		_ = os.Remove(tmpFile.Name())
+		_ = os.Remove(tmpFile.Name()) // #nosec G703 -- ignore "G703: Path traversal via taint analysis (gosec)"
 	}()
 
 	p := profileData{
@@ -110,6 +110,9 @@ func isLoaded(name string, fileName string) (bool, error) {
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
+		// Normally profiles are suffixed by " (enforce)" or similar. AppArmor
+		// profiles cannot contain spaces so this doesn't restrict daemon profile
+		// names.
 		if prefix, _, ok := strings.Cut(scanner.Text(), " "); ok && prefix == name {
 			return true, nil
 		}
@@ -126,7 +129,7 @@ func isLoaded(name string, fileName string) (bool, error) {
 // replace the profile. The `-K` is necessary to make sure that apparmor_parser
 // doesn't try to write to a read-only filesystem.
 func loadProfile(profilePath string) error {
-	c := exec.Command("apparmor_parser", "-Kr", profilePath)
+	c := exec.Command("apparmor_parser", "-Kr", profilePath) // #nosec G204 G702 -- Ignore "Subprocess launched with variable (gosec)"
 	c.Dir = ""
 
 	if output, err := c.CombinedOutput(); err != nil {
