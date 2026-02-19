@@ -6,7 +6,6 @@ package apparmor
 import (
 	"errors"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -139,7 +138,7 @@ Discord (unconfined)
 
 func TestIsLoaded(t *testing.T) {
 	tmpDir := t.TempDir()
-	profiles := path.Join(tmpDir, "apparmor_profiles")
+	profiles := filepath.Join(tmpDir, "apparmor_profiles")
 	if err := os.WriteFile(profiles, []byte(testAppArmorProfiles), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -162,7 +161,7 @@ func TestIsLoaded(t *testing.T) {
 		}
 	})
 	t.Run("error", func(t *testing.T) {
-		_, err := isLoaded("anything", path.Join(tmpDir, "no_such_file"))
+		_, err := isLoaded("anything", filepath.Join(tmpDir, "no_such_file"))
 		if err == nil || !errors.Is(err, os.ErrNotExist) {
 			t.Fatalf("expected error to be os.ErrNotExist, got %v", err)
 		}

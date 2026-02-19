@@ -11,7 +11,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"path"
+	"path/filepath"
 	"strings"
 	"text/template"
 )
@@ -53,7 +53,7 @@ func (p *profileData) generateDefault(out io.Writer) error {
 
 // macroExists checks if the passed macro exists.
 func macroExists(m string) bool {
-	_, err := os.Stat(path.Join(profileDirectory, m))
+	_, err := os.Stat(filepath.Join(profileDirectory, m))
 	return err == nil
 }
 
