@@ -65,7 +65,8 @@ profile {{.Name}} flags=(attach_disconnected,mediate_deleted) {
   deny /sys/devices/virtual/powercap/** rwklx,
   deny /sys/kernel/security/** rwklx,
 
-  # suppress ptrace denials when using 'docker ps' or using 'ps' inside a container
-  ptrace (trace,read,tracedby,readby) peer={{.Name}},
+  # allow processes within the container to trace each other,
+  # provided all other LSM and yama setting allow it.
+  ptrace (trace,tracedby,read,readby) peer={{.Name}},
 }
 `
