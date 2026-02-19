@@ -63,7 +63,7 @@ func InstallDefault(name string) error {
 	// Figure out the daemon profile.
 	daemonProfile := "unconfined"
 	if currentProfile, err := os.ReadFile("/proc/self/attr/current"); err == nil {
-		// Normally profiles are suffixed by " (enforcing)" or similar. AppArmor
+		// Normally profiles are suffixed by " (enforce)" or similar. AppArmor
 		// profiles cannot contain spaces so this doesn't restrict daemon profile
 		// names.
 		if profile, _, _ := strings.Cut(string(currentProfile), " "); profile != "" {
@@ -110,6 +110,9 @@ func isLoaded(name string, fileName string) (bool, error) {
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
+		// Normally profiles are suffixed by " (enforce)" or similar. AppArmor
+		// profiles cannot contain spaces so this doesn't restrict daemon profile
+		// names.
 		if prefix, _, ok := strings.Cut(scanner.Text(), " "); ok && prefix == name {
 			return true, nil
 		}
