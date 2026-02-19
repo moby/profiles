@@ -401,6 +401,7 @@ func DefaultProfile() *Seccomp {
 					"uname",
 					"unlink",
 					"unlinkat",
+					"unshare",
 					"uretprobe", // kernel v6.11, libseccomp v2.6.0
 					"utime",
 					"utimensat",
@@ -621,7 +622,6 @@ func DefaultProfile() *Seccomp {
 					"syslog",
 					"umount",
 					"umount2",
-					"unshare",
 				},
 				Action: specs.ActAllow,
 			},
