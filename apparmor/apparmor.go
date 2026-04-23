@@ -70,7 +70,10 @@ func InstallDefault(name string) error {
 		// Normally profiles are suffixed by " (enforce)" or similar. AppArmor
 		// profiles cannot contain spaces so this doesn't restrict daemon profile
 		// names.
-		if profile, _, _ := strings.Cut(string(currentProfile), " "); profile != "" {
+		profile, _, _ := strings.Cut(string(currentProfile), " ")
+		// Trim trailing newline.
+		profile = strings.TrimSpace(profile)
+		if profile != "" {
 			daemonProfile = profile
 		}
 	}
