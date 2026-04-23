@@ -228,7 +228,7 @@ func TestGenerateDefault(t *testing.T) {
 				macroExistsFn = tc.macroExists
 			}
 			var sb strings.Builder
-			err := tc.data.generateDefault(&sb, macroExistsFn)
+			err := generate(&tc.data, &sb, macroExistsFn)
 			if err != nil {
 				t.Fatal(err)
 			}

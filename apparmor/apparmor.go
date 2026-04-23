@@ -31,8 +31,8 @@ type profileData struct {
 	InnerImports []string
 }
 
-// generateDefault creates an AppArmor profile from ProfileData.
-func (p *profileData) generateDefault(out io.Writer, macroExistsFn func(string) bool) error {
+// generate creates an AppArmor profile from ProfileData.
+func generate(p *profileData, out io.Writer, macroExistsFn func(string) bool) error {
 	compiled, err := template.New("apparmor_profile").Parse(baseTemplate)
 	if err != nil {
 		return err
@@ -90,7 +90,7 @@ func InstallDefault(name string) error {
 		Name:          name,
 		DaemonProfile: daemonProfile,
 	}
-	if err := p.generateDefault(tmpFile, macroExists); err != nil {
+	if err := generate(&p, tmpFile, macroExists); err != nil {
 		return err
 	}
 
