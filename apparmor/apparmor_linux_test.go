@@ -5,11 +5,14 @@ package apparmor
 
 import (
 	"errors"
+	"flag"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 )
+
+var update = flag.Bool("update", false, "update golden files")
 
 // testAppArmorProfiles fixture "/sys/kernel/security/apparmor/profiles"
 // from an Ubuntu 24.10 host.
@@ -168,6 +171,73 @@ func TestIsLoaded(t *testing.T) {
 	})
 }
 
+func TestGenerateDefault(t *testing.T) {
+	tests := []struct {
+		name        string
+		data        profileData
+		macroExists func(string) bool
+	}{
+		{
+			name: "default",
+			data: profileData{
+				Name: "default",
+			},
+		},
+		{
+			name: "with-tunables",
+			data: profileData{
+				Name: "tunables",
+			},
+			macroExists: func(name string) bool { return name == "tunables/global" },
+		},
+		{
+			name: "with-abstractions-base",
+			data: profileData{
+				Name: "abstractions-base",
+			},
+			macroExists: func(name string) bool { return name == "abstractions/base" },
+		},
+		{
+			name: "with-daemon-profile",
+			data: profileData{
+				Name:          "daemon-profile",
+				DaemonProfile: "my-daemon-profile",
+			},
+		},
+		{
+			name: "with-custom-imports",
+			data: profileData{
+				Name:    "custom-imports",
+				Imports: []string{"#include <something/foo>", "#include <something/bar>"},
+			},
+		},
+		{
+			name: "with-custom-inner-imports",
+			data: profileData{
+				Name:         "custom-inner-imports",
+				InnerImports: []string{"#include <something/foo>", "#include <something/bar>"},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// disable all macros by default.
+			macroExistsFn := func(string) bool { return false }
+			if tc.macroExists != nil {
+				macroExistsFn = tc.macroExists
+			}
+			var sb strings.Builder
+			err := generate(&tc.data, &sb, macroExistsFn)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			assertGolden(t, sb.String(), tc.name)
+		})
+	}
+}
+
 func createTestProfiles(b *testing.B, lines int, targetProfile string) string {
 	b.Helper()
 
@@ -195,5 +265,28 @@ func BenchmarkIsLoaded(b *testing.B) {
 		if err != nil || !found {
 			b.Fatalf("expected profile to be found, got found=%v, err=%v", found, err)
 		}
+	}
+}
+
+func assertGolden(t *testing.T, got string, name string) {
+	t.Helper()
+
+	goldenFile := filepath.Join("testdata", name+".golden")
+	if *update {
+		err := os.WriteFile(goldenFile, []byte(got), 0o644)
+		if err != nil {
+			t.Fatalf("updating golden file %q: %v", goldenFile, err)
+		}
+	}
+
+	want, err := os.ReadFile(goldenFile)
+	if err != nil {
+		t.Fatalf(`reading golden file: %v
+
+You can run 'go test . -update' to automatically update %s to the new expected value.`, err, goldenFile)
+	}
+
+	if got != string(want) {
+		t.Fatalf("golden mismatch for %s\n\n--- got ---\n%s\n--- want ---\n%s", name, got, want)
 	}
 }

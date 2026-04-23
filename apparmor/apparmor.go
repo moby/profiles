@@ -16,7 +16,7 @@ import (
 	"text/template"
 )
 
-// profileDirectory is the file store for apparmor profiles and macros.
+// profileDirectory is the file store for AppArmor profiles and macros.
 const profileDirectory = "/etc/apparmor.d"
 
 // profileData holds information about the given profile for generation.
@@ -25,26 +25,30 @@ type profileData struct {
 	Name string
 	// DaemonProfile is the profile name of our daemon.
 	DaemonProfile string
-	// Imports defines the apparmor functions to import, before defining the profile.
+	// Imports defines the AppArmor functions to import, before defining the profile.
 	Imports []string
-	// InnerImports defines the apparmor functions to import in the profile.
+	// InnerImports defines the AppArmor functions to import in the profile.
 	InnerImports []string
 }
 
-// generateDefault creates an apparmor profile from ProfileData.
-func (p *profileData) generateDefault(out io.Writer) error {
+// generate creates an AppArmor profile from ProfileData.
+func generate(p *profileData, out io.Writer, macroExistsFn func(string) bool) error {
 	compiled, err := template.New("apparmor_profile").Parse(baseTemplate)
 	if err != nil {
 		return err
 	}
 
-	if macroExists("tunables/global") {
+	if p.DaemonProfile == "" {
+		p.DaemonProfile = "unconfined"
+	}
+
+	if macroExistsFn("tunables/global") {
 		p.Imports = append(p.Imports, "#include <tunables/global>")
 	} else {
 		p.Imports = append(p.Imports, "@{PROC}=/proc/")
 	}
 
-	if macroExists("abstractions/base") {
+	if macroExistsFn("abstractions/base") {
 		p.InnerImports = append(p.InnerImports, "#include <abstractions/base>")
 	}
 
@@ -61,12 +65,15 @@ func macroExists(m string) bool {
 // os.TempDir(), then loads the profile into the kernel using 'apparmor_parser'.
 func InstallDefault(name string) error {
 	// Figure out the daemon profile.
-	daemonProfile := "unconfined"
+	var daemonProfile string
 	if currentProfile, err := os.ReadFile("/proc/self/attr/current"); err == nil {
 		// Normally profiles are suffixed by " (enforce)" or similar. AppArmor
 		// profiles cannot contain spaces so this doesn't restrict daemon profile
 		// names.
-		if profile, _, _ := strings.Cut(string(currentProfile), " "); profile != "" {
+		profile, _, _ := strings.Cut(string(currentProfile), " ")
+		// Trim trailing newline.
+		profile = strings.TrimSpace(profile)
+		if profile != "" {
 			daemonProfile = profile
 		}
 	}
@@ -86,7 +93,7 @@ func InstallDefault(name string) error {
 		Name:          name,
 		DaemonProfile: daemonProfile,
 	}
-	if err := p.generateDefault(tmpFile); err != nil {
+	if err := generate(&p, tmpFile, macroExists); err != nil {
 		return err
 	}
 
@@ -125,7 +132,7 @@ func isLoaded(name string, fileName string) (bool, error) {
 	return false, nil
 }
 
-// loadProfile runs `apparmor_parser -Kr` on a specified apparmor profile to
+// loadProfile runs `apparmor_parser -Kr` on a specified AppArmor profile to
 // replace the profile. The `-K` is necessary to make sure that apparmor_parser
 // doesn't try to write to a read-only filesystem.
 func loadProfile(profilePath string) error {
