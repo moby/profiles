@@ -32,19 +32,19 @@ type profileData struct {
 }
 
 // generateDefault creates an AppArmor profile from ProfileData.
-func (p *profileData) generateDefault(out io.Writer) error {
+func (p *profileData) generateDefault(out io.Writer, macroExistsFn func(string) bool) error {
 	compiled, err := template.New("apparmor_profile").Parse(baseTemplate)
 	if err != nil {
 		return err
 	}
 
-	if macroExists("tunables/global") {
+	if macroExistsFn("tunables/global") {
 		p.Imports = append(p.Imports, "#include <tunables/global>")
 	} else {
 		p.Imports = append(p.Imports, "@{PROC}=/proc/")
 	}
 
-	if macroExists("abstractions/base") {
+	if macroExistsFn("abstractions/base") {
 		p.InnerImports = append(p.InnerImports, "#include <abstractions/base>")
 	}
 
@@ -86,7 +86,7 @@ func InstallDefault(name string) error {
 		Name:          name,
 		DaemonProfile: daemonProfile,
 	}
-	if err := p.generateDefault(tmpFile); err != nil {
+	if err := p.generateDefault(tmpFile, macroExists); err != nil {
 		return err
 	}
 
