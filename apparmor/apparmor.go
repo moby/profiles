@@ -38,6 +38,10 @@ func (p *profileData) generateDefault(out io.Writer, macroExistsFn func(string) 
 		return err
 	}
 
+	if p.DaemonProfile == "" {
+		p.DaemonProfile = "unconfined"
+	}
+
 	if macroExistsFn("tunables/global") {
 		p.Imports = append(p.Imports, "#include <tunables/global>")
 	} else {
@@ -61,7 +65,7 @@ func macroExists(m string) bool {
 // os.TempDir(), then loads the profile into the kernel using 'apparmor_parser'.
 func InstallDefault(name string) error {
 	// Figure out the daemon profile.
-	daemonProfile := "unconfined"
+	var daemonProfile string
 	if currentProfile, err := os.ReadFile("/proc/self/attr/current"); err == nil {
 		// Normally profiles are suffixed by " (enforce)" or similar. AppArmor
 		// profiles cannot contain spaces so this doesn't restrict daemon profile
