@@ -16,7 +16,7 @@ import (
 	"text/template"
 )
 
-// profileDirectory is the file store for apparmor profiles and macros.
+// profileDirectory is the file store for AppArmor profiles and macros.
 const profileDirectory = "/etc/apparmor.d"
 
 // profileData holds information about the given profile for generation.
@@ -25,13 +25,13 @@ type profileData struct {
 	Name string
 	// DaemonProfile is the profile name of our daemon.
 	DaemonProfile string
-	// Imports defines the apparmor functions to import, before defining the profile.
+	// Imports defines the AppArmor functions to import, before defining the profile.
 	Imports []string
-	// InnerImports defines the apparmor functions to import in the profile.
+	// InnerImports defines the AppArmor functions to import in the profile.
 	InnerImports []string
 }
 
-// generateDefault creates an apparmor profile from ProfileData.
+// generateDefault creates an AppArmor profile from ProfileData.
 func (p *profileData) generateDefault(out io.Writer) error {
 	compiled, err := template.New("apparmor_profile").Parse(baseTemplate)
 	if err != nil {
@@ -125,7 +125,7 @@ func isLoaded(name string, fileName string) (bool, error) {
 	return false, nil
 }
 
-// loadProfile runs `apparmor_parser -Kr` on a specified apparmor profile to
+// loadProfile runs `apparmor_parser -Kr` on a specified AppArmor profile to
 // replace the profile. The `-K` is necessary to make sure that apparmor_parser
 // doesn't try to write to a read-only filesystem.
 func loadProfile(profilePath string) error {
