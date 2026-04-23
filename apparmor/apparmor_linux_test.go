@@ -184,6 +184,13 @@ func TestGenerateDefault(t *testing.T) {
 			},
 		},
 		{
+			name: "with-api3",
+			data: profileData{
+				Name: "with-api3",
+			},
+			macroExists: func(name string) bool { return name == "abi/3.0" },
+		},
+		{
 			name: "with-tunables",
 			data: profileData{
 				Name: "tunables",
