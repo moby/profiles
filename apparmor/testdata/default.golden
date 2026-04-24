@@ -3,7 +3,7 @@
 
 @{PROC}=/proc/
 
-profile default flags=(attach_disconnected,mediate_deleted) {
+profile "default" flags=(attach_disconnected,mediate_deleted) {
   network,
   capability,
   file,
@@ -15,9 +15,9 @@ profile default flags=(attach_disconnected,mediate_deleted) {
   # crun may send signals to container processes (for "docker stop" when used with crun OCI runtime).
   signal (receive) peer=crun,
   # dockerd may send signals to container processes (for "docker kill").
-  signal (receive) peer=unconfined,
+  signal (receive) peer="unconfined",
   # Container processes may send signals amongst themselves.
-  signal (send,receive) peer=default,
+  signal (send,receive) peer="default",
 
   deny @{PROC}/* w,   # deny write for all files directly in /proc (not in a subdir)
   # deny write to files not in /proc/<number>/** or /proc/sys/**
@@ -40,5 +40,5 @@ profile default flags=(attach_disconnected,mediate_deleted) {
 
   # allow processes within the container to trace each other,
   # provided all other LSM and yama setting allow it.
-  ptrace (trace,tracedby,read,readby) peer=default,
+  ptrace (trace,tracedby,read,readby) peer="default",
 }
