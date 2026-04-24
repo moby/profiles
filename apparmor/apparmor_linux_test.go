@@ -4,12 +4,16 @@
 package apparmor
 
 import (
+	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 var update = flag.Bool("update", false, "update golden files")
@@ -138,6 +142,33 @@ MongoDB Compass (unconfined)
 Discord (unconfined)
 1password (unconfined)
 `
+
+func TestInstallDefault(t *testing.T) {
+	if os.Geteuid() != 0 {
+		t.Skip("requires root")
+	}
+	if !hostSupportsAppArmor() {
+		t.Skip("AppArmor not supported on this host")
+	}
+	if _, err := exec.LookPath("apparmor_parser"); err != nil {
+		t.Skipf("apparmor_parser not available: %v", err)
+	}
+
+	name := fmt.Sprintf("test-default-profile-%d", time.Now().UnixNano())
+	err := InstallDefault(name)
+	if err != nil {
+		t.Fatal("installing profile:", err)
+	}
+	t.Cleanup(func() { unloadProfile(t, name) })
+
+	ok, err := IsLoaded(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ok {
+		t.Fatalf("%s is not loaded", name)
+	}
+}
 
 func TestIsLoaded(t *testing.T) {
 	tmpDir := t.TempDir()
@@ -311,5 +342,36 @@ You can run 'go test . -update' to automatically update %s to the new expected v
 
 	if got != string(want) {
 		t.Fatalf("golden mismatch for %s\n\n--- got ---\n%s\n--- want ---\n%s", name, got, want)
+	}
+}
+
+func hostSupportsAppArmor() bool {
+	if _, err := os.Stat("/sys/kernel/security/apparmor"); err != nil {
+		return false
+	}
+	buf, err := os.ReadFile("/sys/module/apparmor/parameters/enabled")
+	return err == nil && len(buf) > 0 && buf[0] == 'Y'
+}
+
+func unloadProfile(t *testing.T, name string) {
+	t.Helper()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Passing an empty profile, because "apparmor_parser -R" requires a profile
+	// to be passed (see apparmor_parser(8));
+	//
+	// > -R, --remove
+	// >
+	// > This flag is used to remove an AppArmor definition already in the kernel.
+	// > Note that it still requires a complete AppArmor definition as described
+	// > in apparmor.d(5) even though the contents of the definition aren't used.
+	buf := strings.NewReader("profile " + name + " {}\n")
+	cmd := exec.CommandContext(ctx, "apparmor_parser", "-R")
+	cmd.Stdin = buf
+	if out, err := cmd.CombinedOutput(); err != nil {
+		// don't fail on cleanup (may fail if the profile is in use).
+		t.Logf("unload profile %q failed: %v\n%s", name, err, out)
 	}
 }
