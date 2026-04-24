@@ -7,6 +7,8 @@ package apparmor
 
 import (
 	"bufio"
+	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -68,9 +70,13 @@ func macroExists(m string) bool {
 	return err == nil
 }
 
-// InstallDefault generates a default profile in a temp directory determined by
-// os.TempDir(), then loads the profile into the kernel using 'apparmor_parser'.
+// InstallDefault generates a default profile, then loads the profile into the
+// kernel using 'apparmor_parser'.
 func InstallDefault(name string) error {
+	return installDefault(context.Background(), name)
+}
+
+func installDefault(ctx context.Context, name string) error {
 	// Figure out the daemon profile.
 	var daemonProfile string
 	if currentProfile, err := os.ReadFile("/proc/self/attr/current"); err == nil {
@@ -85,26 +91,17 @@ func InstallDefault(name string) error {
 		}
 	}
 
-	// Install to a temporary directory.
-	tmpFile, err := os.CreateTemp("", "apparmor-profile-")
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		_ = tmpFile.Close()
-		_ = os.Remove(tmpFile.Name()) // #nosec G703 -- ignore "G703: Path traversal via taint analysis (gosec)"
-	}()
-
 	p := profileData{
 		Name:          name,
 		DaemonProfile: daemonProfile,
 	}
-	if err := generate(&p, tmpFile, macroExists); err != nil {
+
+	var buf bytes.Buffer
+	if err := generate(&p, &buf, macroExists); err != nil {
 		return err
 	}
 
-	return loadProfile(tmpFile.Name())
+	return loadProfile(ctx, &buf)
 }
 
 // IsLoaded checks if a profile with the given name has been loaded into the
@@ -139,15 +136,14 @@ func isLoaded(name string, fileName string) (bool, error) {
 	return false, nil
 }
 
-// loadProfile runs `apparmor_parser -Kr` on a specified AppArmor profile to
-// replace the profile. The `-K` is necessary to make sure that apparmor_parser
-// doesn't try to write to a read-only filesystem.
-func loadProfile(profilePath string) error {
-	c := exec.Command("apparmor_parser", "-Kr", profilePath) // #nosec G204 G702 -- Ignore "Subprocess launched with variable (gosec)"
-	c.Dir = ""
-
-	if output, err := c.CombinedOutput(); err != nil {
-		return fmt.Errorf("running '%s' failed with output: %s\nerror: %w", c, output, err)
+// loadProfile runs "apparmor_parser -Kr", providing the AppArmor profile on
+// stdin to replace the profile. The "-K" is necessary to make sure that
+// apparmor_parser doesn't try to write to a read-only filesystem.
+func loadProfile(ctx context.Context, profile io.Reader) error {
+	c := exec.CommandContext(ctx, "apparmor_parser", "-Kr")
+	c.Stdin = profile
+	if out, err := c.CombinedOutput(); err != nil {
+		return fmt.Errorf("running '%s' failed with output: %s\nerror: %w", c, out, err)
 	}
 
 	return nil
