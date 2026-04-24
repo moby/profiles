@@ -6,6 +6,11 @@ PROJECT_ROOT ?= $(shell pwd)
 SCRIPTDIR ?= $(PROJECT_ROOT)/script
 PACKAGES ?= apparmor seccomp
 CROSSBUILDS ?= linux/arm linux/arm64 linux/amd64 linux/ppc64le linux/s390x
+SUDO ?= sudo -n
+GO_TEST_EXEC :=
+ifeq ($(TEST_AS_ROOT),1)
+GO_TEST_EXEC := -exec '$(SUDO)'
+endif
 
 .PHONY: all
 all: crossbuild test  ## cross build and run tests for all modules
@@ -32,7 +37,7 @@ crossbuild: ## cross build all modules
 
 .PHONY: test
 test: ## run tests for all modules
-test: CMD=go test -v ./...
+test: CMD=go test $(GO_TEST_EXEC) -v ./...
 test: foreach
 
 .PHONY: validate-codegen
