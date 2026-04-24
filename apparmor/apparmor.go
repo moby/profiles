@@ -74,13 +74,14 @@ func InstallDefault(name string) error {
 	// Figure out the daemon profile.
 	var daemonProfile string
 	if currentProfile, err := os.ReadFile("/proc/self/attr/current"); err == nil {
-		// Normally profiles are suffixed by " (enforce)" or similar. AppArmor
-		// profiles cannot contain spaces so this doesn't restrict daemon profile
-		// names.
-		profile, _, _ := strings.Cut(string(currentProfile), " ")
-		// Trim trailing newline.
-		profile = strings.TrimSpace(profile)
-		if profile != "" {
+		// /proc/self/attr/current returns the current label for the process.
+		// Unlike /sys/kernel/security/apparmor/profiles, this value may not
+		// include a " (<mode>)" suffix (e.g. it can be just "unconfined").
+		// If a suffix is present, it is of the form "<profile> (<mode>)".
+		// Profile names may contain spaces, so split on " (" rather than the
+		// first space. Trim whitespace first because the value includes a
+		// trailing newline.
+		if profile, _, _ := strings.Cut(strings.TrimSpace(string(currentProfile)), " ("); profile != "" {
 			daemonProfile = profile
 		}
 	}
@@ -114,28 +115,24 @@ func IsLoaded(name string) (bool, error) {
 }
 
 func isLoaded(name string, fileName string) (bool, error) {
-	file, err := os.Open(fileName)
+	f, err := os.Open(fileName)
 	if err != nil {
 		return false, err
 	}
-	defer func() {
-		_ = file.Close()
-	}()
+	defer func() { _ = f.Close() }()
 
-	scanner := bufio.NewScanner(file)
+	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
-		// Normally profiles are suffixed by " (enforce)" or similar. AppArmor
-		// profiles cannot contain spaces so this doesn't restrict daemon profile
-		// names.
-		if prefix, _, ok := strings.Cut(scanner.Text(), " "); ok && prefix == name {
+		// Entries are of the form "<profile> (<mode>)", e.g. "foo (enforce)".
+		// Profile names may contain spaces (quoted names are supported in AppArmor),
+		// so split on " (" rather than the first space.
+		if prefix, _, ok := strings.Cut(scanner.Text(), " ("); ok && prefix == name {
 			return true, nil
 		}
 	}
-
 	if err := scanner.Err(); err != nil {
 		return false, err
 	}
-
 	return false, nil
 }
 

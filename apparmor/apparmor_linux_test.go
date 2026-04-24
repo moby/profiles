@@ -154,6 +154,15 @@ func TestIsLoaded(t *testing.T) {
 			t.Fatal("expected profile to be loaded")
 		}
 	})
+	t.Run("loaded with spaces", func(t *testing.T) {
+		found, err := isLoaded("MongoDB Compass", profiles)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !found {
+			t.Fatal("expected profile to be loaded")
+		}
+	})
 	t.Run("not loaded", func(t *testing.T) {
 		found, err := isLoaded("no-such-profile", profiles)
 		if err != nil {
@@ -207,8 +216,15 @@ func TestGenerateDefault(t *testing.T) {
 		{
 			name: "with-daemon-profile",
 			data: profileData{
-				Name:          "daemon-profile",
+				Name:          "with-daemon-profile",
 				DaemonProfile: "my-daemon-profile",
+			},
+		},
+		{
+			name: "with-spaces",
+			data: profileData{
+				Name:          "Profile with spaces",
+				DaemonProfile: "Daemon Profile",
 			},
 		},
 		{
