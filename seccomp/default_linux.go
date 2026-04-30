@@ -434,6 +434,12 @@ func DefaultProfile() *Seccomp {
 				MinKernel: &KernelVersion{4, 8},
 			},
 		},
+		// Allow socket(2) for all address families except AF_VSOCK.
+		// NOTE: on 32-bit x86, socket() goes through socketcall(2) which is
+		// allowed unconditionally above, so AF_VSOCK is still reachable
+		// via the socketcall-based socket() path. These arg filters only apply
+		// to the direct socket syscall, and do not protect 32-bit x86 unless
+		// socketcall(2) is also addressed.
 		{
 			LinuxSyscall: specs.LinuxSyscall{
 				Names:  []string{"socket"},
