@@ -8,6 +8,14 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+// The socket rules in DefaultProfile rely on AF_ALG and AF_VSOCK being
+// exactly two apart (38 and 40), with a single family (39) between them.
+var (
+	_ [38]byte = [unix.AF_ALG]byte{}
+	_ [40]byte = [unix.AF_VSOCK]byte{}
+	_ [1]byte  = [unix.AF_VSOCK - unix.AF_ALG - 1]byte{}
+)
+
 func arches() []Architecture {
 	return []Architecture{
 		{
