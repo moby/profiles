@@ -434,9 +434,9 @@ func DefaultProfile() *Seccomp {
 				MinKernel: &KernelVersion{4, 8},
 			},
 		},
-		// Allow socket(2) for all address families except AF_VSOCK.
+		// Allow socket(2) for all address families except AF_VSOCK and AF_ALG.
 		// NOTE: on 32-bit x86, socket() goes through socketcall(2) which is
-		// allowed unconditionally above, so AF_VSOCK is still reachable
+		// allowed unconditionally above, so AF_VSOCK/AF_ALG is still reachable
 		// via the socketcall-based socket() path. These arg filters only apply
 		// to the direct socket syscall, and do not protect 32-bit x86 unless
 		// socketcall(2) is also addressed.
@@ -447,8 +447,34 @@ func DefaultProfile() *Seccomp {
 				Args: []specs.LinuxSeccompArg{
 					{
 						Index: 0,
+						Value: unix.AF_ALG,
+						Op:    specs.OpLessThan,
+					},
+				},
+			},
+		},
+		{
+			LinuxSyscall: specs.LinuxSyscall{
+				Names:  []string{"socket"},
+				Action: specs.ActAllow,
+				Args: []specs.LinuxSeccompArg{
+					{
+						Index: 0,
+						Value: unix.AF_ALG + 1,
+						Op:    specs.OpEqualTo,
+					},
+				},
+			},
+		},
+		{
+			LinuxSyscall: specs.LinuxSyscall{
+				Names:  []string{"socket"},
+				Action: specs.ActAllow,
+				Args: []specs.LinuxSeccompArg{
+					{
+						Index: 0,
 						Value: unix.AF_VSOCK,
-						Op:    specs.OpNotEqual,
+						Op:    specs.OpGreaterThan,
 					},
 				},
 			},
