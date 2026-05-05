@@ -5,6 +5,8 @@
 
 profile "with-daemon-profile" flags=(attach_disconnected,mediate_deleted) {
   network,
+  # Disallow AF_ALG (Linux kernel crypto API); see https://copy.fail/
+  deny network alg,
   capability,
   file,
   umount,
