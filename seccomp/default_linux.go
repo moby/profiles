@@ -54,6 +54,18 @@ func arches() []Architecture {
 			Arch:      specs.ArchLOONGARCH64,
 			SubArches: nil,
 		},
+		{
+			Arch:      specs.ArchPPC64LE,
+			SubArches: nil,
+		},
+		{
+			Arch:      specs.ArchPPC64,
+			SubArches: nil,
+		},
+		{
+			Arch:      specs.ArchPPC,
+			SubArches: nil,
+		},
 	}
 }
 
