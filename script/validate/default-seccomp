@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright The Moby Authors.
+# SPDX-FileCopyrightText: The Moby Authors
 # SPDX-License-Identifier: Apache-2.0
 
 # This script validates that the seccomp profile generation is done correctly.

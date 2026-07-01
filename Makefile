@@ -1,4 +1,4 @@
-# Copyright The Moby Authors.
+# SPDX-FileCopyrightText: The Moby Authors
 # SPDX-License-Identifier: Apache-2.0
 
 # Makefile for building and testing Moby profiles packages
