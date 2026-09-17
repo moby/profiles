@@ -37,7 +37,11 @@ var allowedSocketDomains = []uint64{
 	unix.AF_NETLINK,
 	unix.AF_PACKET,
 	unix.AF_ASH,
-	unix.AF_ECONET,
+
+	// AF_ECONET was removed in Linux 3.5:
+	// https://git.kernel.org/torvalds/c/349f29d841dbae854bd7367be7c250401f974f47
+	//
+	// unix.AF_ECONET,
 
 	// AF_ATMSVC was removed in Linux 7.2:
 	// https://git.kernel.org/torvalds/c/aa582dc25ace8951ad595c71fb93d21ed2ec4624
