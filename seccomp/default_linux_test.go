@@ -90,7 +90,15 @@ func TestSocketSyscallsForDomains(t *testing.T) {
 
 func TestDefaultSyscalls(t *testing.T) {
 	want := []*Syscall{
-		socketTestSyscall(specs.LinuxSeccompArg{Index: 0, Value: unix.AF_ISDN, Op: specs.OpLessThan}),
+		socketTestSyscall(specs.LinuxSeccompArg{Index: 0, Value: unix.AF_WANPIPE, Op: specs.OpLessThan}),
+		socketTestSyscall(specs.LinuxSeccompArg{Index: 0, Value: unix.AF_LLC, Op: specs.OpEqualTo}),
+		socketTestSyscall(specs.LinuxSeccompArg{Index: 0, Value: unix.AF_IB, Op: specs.OpEqualTo}),
+		socketTestSyscall(specs.LinuxSeccompArg{Index: 0, Value: unix.AF_MPLS, Op: specs.OpEqualTo}),
+		socketTestSyscall(specs.LinuxSeccompArg{Index: 0, Value: unix.AF_CAN, Op: specs.OpEqualTo}),
+		socketTestSyscall(specs.LinuxSeccompArg{Index: 0, Value: unix.AF_TIPC, Op: specs.OpEqualTo}),
+		socketTestSyscall(specs.LinuxSeccompArg{Index: 0, Value: unix.AF_BLUETOOTH, Op: specs.OpEqualTo}),
+		socketTestSyscall(specs.LinuxSeccompArg{Index: 0, Value: unix.AF_IUCV, Op: specs.OpEqualTo}),
+		socketTestSyscall(specs.LinuxSeccompArg{Index: 0, Value: unix.AF_RXRPC, Op: specs.OpEqualTo}),
 		socketTestSyscall(specs.LinuxSeccompArg{Index: 0, Value: unix.AF_PHONET, Op: specs.OpEqualTo}),
 		socketTestSyscall(specs.LinuxSeccompArg{Index: 0, Value: unix.AF_IEEE802154, Op: specs.OpEqualTo}),
 		socketTestSyscall(specs.LinuxSeccompArg{Index: 0, Value: unix.AF_NFC, Op: specs.OpEqualTo}),

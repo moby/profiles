@@ -43,7 +43,14 @@ var allowedSocketDomains = []uint64{
 	unix.AF_SNA,
 	unix.AF_IRDA,
 	unix.AF_PPPOX,
-	unix.AF_WANPIPE,
+
+	// AF_WANPIPE has had no implementation since before Linux 2.6.12, the
+	// start of the kernel's git history. The unbuilt leftover was deleted in
+	// Linux 2.6.21:
+	// https://git.kernel.org/torvalds/c/ce0ecd594d78710422599918a608e96dd1ee6024
+	//
+	// unix.AF_WANPIPE,
+
 	unix.AF_LLC,
 	unix.AF_IB,
 	unix.AF_MPLS,
