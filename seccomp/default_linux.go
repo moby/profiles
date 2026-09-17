@@ -41,7 +41,12 @@ var allowedSocketDomains = []uint64{
 	unix.AF_ATMSVC,
 	unix.AF_RDS,
 	unix.AF_SNA,
-	unix.AF_IRDA,
+
+	// AF_IRDA was removed in Linux 4.17:
+	// https://git.kernel.org/torvalds/c/d64c2a76123f0300b08d0557ad56e9d599872a36
+	//
+	// unix.AF_IRDA,
+
 	unix.AF_PPPOX,
 
 	// AF_WANPIPE has had no implementation since before Linux 2.6.12, the
