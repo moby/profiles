@@ -29,7 +29,11 @@ var allowedSocketDomains = []uint64{
 	unix.AF_ATMPVC,
 	unix.AF_X25,
 	unix.AF_INET6,
-	unix.AF_ROSE,
+
+	// AF_ROSE was removed in Linux 7.1 together with AF_AX25:
+	// https://git.kernel.org/torvalds/c/dd8d4bc28ad7252610d8e79c1313a2d1e3499a51
+	//
+	// unix.AF_ROSE,
 
 	// AF_DECnet was removed in Linux 6.1:
 	// https://git.kernel.org/torvalds/c/1202cdd665315c525b5237e96e0bedc76d7e754f
