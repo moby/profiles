@@ -14,6 +14,10 @@ import (
 // https://github.com/torvalds/linux/blob/master/include/linux/socket.h
 // AF_UNSPEC is not a creatable domain, AF_MAX is a sentinel, and AF_LOCAL/AF_FILE
 // and AF_ROUTE are aliases of AF_UNIX and AF_NETLINK respectively.
+// A commented-out entry is not allowed: either the kernel no longer implements
+// the domain, and the comment links the upstream commit that removed it, or the
+// domain is deliberately blocked, and the comment says why. Keeping them listed
+// makes this list a complete mirror of the UAPI header.
 var allowedSocketDomains = []uint64{
 	unix.AF_UNIX,
 	unix.AF_INET,
@@ -51,7 +55,11 @@ var allowedSocketDomains = []uint64{
 	unix.AF_ISDN,
 	unix.AF_PHONET,
 	unix.AF_IEEE802154,
-	unix.AF_CAIF,
+
+	// AF_CAIF was removed in Linux 7.1:
+	// https://git.kernel.org/torvalds/c/6d5431555de032f5ad9e08a7fb372f37bf493903
+	//
+	// unix.AF_CAIF,
 
 	// AF_ALG gives userspace direct access to the kernel cryptography API. The
 	// vulnerabilities demonstrated by https://copy.fail/ have been fixed, but
