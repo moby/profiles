@@ -444,8 +444,34 @@
 			"args": [
 				{
 					"index": 0,
-					"value": 37,
+					"value": 34,
 					"op": "SCMP_CMP_LT"
+				}
+			]
+		},
+		{
+			"names": [
+				"socket"
+			],
+			"action": "SCMP_ACT_ALLOW",
+			"args": [
+				{
+					"index": 0,
+					"value": 35,
+					"op": "SCMP_CMP_EQ"
+				}
+			]
+		},
+		{
+			"names": [
+				"socket"
+			],
+			"action": "SCMP_ACT_ALLOW",
+			"args": [
+				{
+					"index": 0,
+					"value": 36,
+					"op": "SCMP_CMP_EQ"
 				}
 			]
 		},

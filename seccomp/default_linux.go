@@ -52,7 +52,13 @@ var allowedSocketDomains = []uint64{
 	unix.AF_BLUETOOTH,
 	unix.AF_IUCV,
 	unix.AF_RXRPC,
-	unix.AF_ISDN,
+
+	// AF_ISDN was removed in Linux 7.1 together with the rest of the ISDN
+	// subsystem:
+	// https://git.kernel.org/torvalds/c/4f10f1dfb235a28bd86cf0b00d86a59696ddbe5b
+	//
+	// unix.AF_ISDN,
+
 	unix.AF_PHONET,
 	unix.AF_IEEE802154,
 
