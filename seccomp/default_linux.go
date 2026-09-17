@@ -23,7 +23,11 @@ var allowedSocketDomains = []uint64{
 	unix.AF_INET,
 	unix.AF_AX25,
 	unix.AF_IPX,
-	unix.AF_APPLETALK,
+
+	// AF_APPLETALK was removed in Linux 7.2:
+	// https://git.kernel.org/torvalds/c/8a398a0c189ead8bbce98f5be70b8ea0e30b21f8
+	//
+	// unix.AF_APPLETALK,
 
 	// AF_NETROM was removed in Linux 7.1 together with AF_AX25:
 	// https://git.kernel.org/torvalds/c/dd8d4bc28ad7252610d8e79c1313a2d1e3499a51
