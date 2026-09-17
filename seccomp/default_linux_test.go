@@ -90,7 +90,13 @@ func TestSocketSyscallsForDomains(t *testing.T) {
 
 func TestDefaultSyscalls(t *testing.T) {
 	want := []*Syscall{
-		socketTestSyscall(specs.LinuxSeccompArg{Index: 0, Value: unix.AF_ECONET, Op: specs.OpLessThan}),
+		socketTestSyscall(specs.LinuxSeccompArg{Index: 0, Value: unix.AF_DECnet, Op: specs.OpLessThan}),
+		socketTestSyscall(specs.LinuxSeccompArg{Index: 0, Value: unix.AF_NETBEUI, Op: specs.OpEqualTo}),
+		socketTestSyscall(specs.LinuxSeccompArg{Index: 0, Value: unix.AF_SECURITY, Op: specs.OpEqualTo}),
+		socketTestSyscall(specs.LinuxSeccompArg{Index: 0, Value: unix.AF_KEY, Op: specs.OpEqualTo}),
+		socketTestSyscall(specs.LinuxSeccompArg{Index: 0, Value: unix.AF_NETLINK, Op: specs.OpEqualTo}),
+		socketTestSyscall(specs.LinuxSeccompArg{Index: 0, Value: unix.AF_PACKET, Op: specs.OpEqualTo}),
+		socketTestSyscall(specs.LinuxSeccompArg{Index: 0, Value: unix.AF_ASH, Op: specs.OpEqualTo}),
 		socketTestSyscall(specs.LinuxSeccompArg{Index: 0, Value: unix.AF_RDS, Op: specs.OpEqualTo}),
 		socketTestSyscall(specs.LinuxSeccompArg{Index: 0, Value: unix.AF_SNA, Op: specs.OpEqualTo}),
 		socketTestSyscall(specs.LinuxSeccompArg{Index: 0, Value: unix.AF_PPPOX, Op: specs.OpEqualTo}),

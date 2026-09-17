@@ -30,7 +30,12 @@ var allowedSocketDomains = []uint64{
 	unix.AF_X25,
 	unix.AF_INET6,
 	unix.AF_ROSE,
-	unix.AF_DECnet,
+
+	// AF_DECnet was removed in Linux 6.1:
+	// https://git.kernel.org/torvalds/c/1202cdd665315c525b5237e96e0bedc76d7e754f
+	//
+	// unix.AF_DECnet,
+
 	unix.AF_NETBEUI,
 	unix.AF_SECURITY,
 	unix.AF_KEY,
