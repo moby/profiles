@@ -38,7 +38,12 @@ var allowedSocketDomains = []uint64{
 	unix.AF_PACKET,
 	unix.AF_ASH,
 	unix.AF_ECONET,
-	unix.AF_ATMSVC,
+
+	// AF_ATMSVC was removed in Linux 7.2:
+	// https://git.kernel.org/torvalds/c/aa582dc25ace8951ad595c71fb93d21ed2ec4624
+	//
+	// unix.AF_ATMSVC,
+
 	unix.AF_RDS,
 	unix.AF_SNA,
 
