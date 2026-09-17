@@ -90,7 +90,7 @@ func TestSocketSyscallsForDomains(t *testing.T) {
 
 func TestDefaultSyscalls(t *testing.T) {
 	want := []*Syscall{
-		socketTestSyscall(specs.LinuxSeccompArg{Index: 0, Value: unix.AF_IPX, Op: specs.OpLessThan}),
+		socketTestSyscall(specs.LinuxSeccompArg{Index: 0, Value: unix.AF_AX25, Op: specs.OpLessThan}),
 		socketTestSyscall(specs.LinuxSeccompArg{Index: 0, Value: unix.AF_BRIDGE, Op: specs.OpEqualTo}),
 		socketTestSyscall(specs.LinuxSeccompArg{Index: 0, Value: unix.AF_ATMPVC, Op: specs.OpEqualTo}),
 		socketTestSyscall(specs.LinuxSeccompArg{Index: 0, Value: unix.AF_X25, Op: specs.OpEqualTo}),

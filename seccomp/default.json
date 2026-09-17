@@ -444,7 +444,7 @@
 			"args": [
 				{
 					"index": 0,
-					"value": 4,
+					"value": 3,
 					"op": "SCMP_CMP_LT"
 				}
 			]

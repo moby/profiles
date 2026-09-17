@@ -21,7 +21,12 @@ import (
 var allowedSocketDomains = []uint64{
 	unix.AF_UNIX,
 	unix.AF_INET,
-	unix.AF_AX25,
+
+	// AF_AX25 was removed in Linux 7.1 together with the rest of the amateur
+	// radio subsystem:
+	// https://git.kernel.org/torvalds/c/dd8d4bc28ad7252610d8e79c1313a2d1e3499a51
+	//
+	// unix.AF_AX25,
 
 	// AF_IPX was removed in Linux 4.18:
 	// https://git.kernel.org/torvalds/c/7a2e838d28cff6718a0bdf66164465402f8e40ed
