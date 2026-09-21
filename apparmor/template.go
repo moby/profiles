@@ -33,6 +33,7 @@ profile "{{.Name}}" flags=(attach_disconnected,mediate_deleted) {
 {{end}}
   network,
   # Disallow obsolete socket families removed from the Linux kernel.
+  # AF_DECnet has no AppArmor family name, so it cannot be denied here.
   deny network ax25,
   deny network ipx,
   deny network appletalk,
