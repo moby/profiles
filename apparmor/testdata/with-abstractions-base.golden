@@ -9,6 +9,7 @@ profile "abstractions-base" flags=(attach_disconnected,mediate_deleted) {
   network,
   # Disallow obsolete socket families removed from the Linux kernel.
   deny network ax25,
+  deny network ipx,
   # Disallow AF_ALG (Linux kernel crypto API); see https://copy.fail/
   deny network alg,
   # Disallow AF_VSOCK to prevent host/guest communication.
