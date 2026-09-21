@@ -39,6 +39,7 @@ profile "{{.Name}}" flags=(attach_disconnected,mediate_deleted) {
   deny network netrom,
   deny network rose,
   deny network econet,
+  deny network atmsvc,
   # Disallow AF_ALG (Linux kernel crypto API); see https://copy.fail/
   deny network alg,
   # Disallow AF_VSOCK to prevent host/guest communication.
