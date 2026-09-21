@@ -36,6 +36,7 @@ profile "{{.Name}}" flags=(attach_disconnected,mediate_deleted) {
   deny network ax25,
   deny network ipx,
   deny network appletalk,
+  deny network netrom,
   # Disallow AF_ALG (Linux kernel crypto API); see https://copy.fail/
   deny network alg,
   # Disallow AF_VSOCK to prevent host/guest communication.
