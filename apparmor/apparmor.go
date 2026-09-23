@@ -159,9 +159,9 @@ func cleanProfileName(profile string) string {
 // similar to libapparmor [splitcon]. splitCon follows libapparmor's parsing
 // semantics and does not validate the returned mode.
 //
-// /proc/self/attr/current returns the current label for the process, but
-// unlike /sys/kernel/security/apparmor/profiles, this value may not include
-// a " (<mode>)" suffix.
+// /proc/self/attr/current returns the current confinement context for the
+// process. Unlike /sys/kernel/security/apparmor/profiles, this value may not
+// include a " (<mode>)" suffix.
 //
 // Supported forms:
 //
