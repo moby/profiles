@@ -224,59 +224,66 @@ func TestGenerateDefault(t *testing.T) {
 		{
 			name: "default",
 			data: profileData{
-				Name: "default",
+				name: "default",
 			},
 		},
 		{
 			name: "with-api3",
 			data: profileData{
-				Name: "with-api3",
+				name: "with-api3",
 			},
 			macroExists: func(name string) bool { return name == "abi/3.0" },
 		},
 		{
 			name: "with-tunables",
 			data: profileData{
-				Name: "tunables",
+				name: "tunables",
 			},
 			macroExists: func(name string) bool { return name == "tunables/global" },
 		},
 		{
 			name: "with-abstractions-base",
 			data: profileData{
-				Name: "abstractions-base",
+				name: "abstractions-base",
 			},
 			macroExists: func(name string) bool { return name == "abstractions/base" },
 		},
 		{
 			name: "with-daemon-profile",
 			data: profileData{
-				Name:          "with-daemon-profile",
-				DaemonProfile: "my-daemon-profile",
+				name:          "with-daemon-profile",
+				daemonProfile: "my-daemon-profile",
 			},
 		},
 		{
 			name: "with-spaces",
 			data: profileData{
-				Name:          "Profile with spaces",
-				DaemonProfile: "Daemon Profile",
+				name:          "Profile with spaces",
+				daemonProfile: "Daemon Profile",
 			},
 		},
 		{
 			name: "with-custom-imports",
 			data: profileData{
-				Name:    "custom-imports",
-				Imports: []string{"#include <something/foo>", "#include <something/bar>"},
+				name:    "custom-imports",
+				imports: []string{"#include <something/foo>", "#include <something/bar>"},
 			},
 			skipParse: true, // Skip parsing because we use non-existing includes.
 		},
 		{
 			name: "with-custom-inner-imports",
 			data: profileData{
-				Name:         "custom-inner-imports",
-				InnerImports: []string{"#include <something/foo>", "#include <something/bar>"},
+				name:         "custom-inner-imports",
+				innerImports: []string{"#include <something/foo>", "#include <something/bar>"},
 			},
 			skipParse: true, // Skip parsing because we use non-existing includes.
+		},
+		{
+			name: "with-special-characters",
+			data: profileData{
+				name:          `foo"bar,*?[ab]{c,d}^\baz`,
+				daemonProfile: `daemon"bar,*?[ab]{c,d}^\baz`,
+			},
 		},
 	}
 

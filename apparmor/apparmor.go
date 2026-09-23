@@ -21,20 +21,6 @@ import (
 // profileDirectory is the file store for AppArmor profiles and macros.
 const profileDirectory = "/etc/apparmor.d"
 
-// profileData holds information about the given profile for generation.
-type profileData struct {
-	// Abi is the ABI version to use.
-	Abi string
-	// Name is profile name.
-	Name string
-	// DaemonProfile is the profile name of our daemon.
-	DaemonProfile string
-	// Imports defines the AppArmor functions to import, before defining the profile.
-	Imports []string
-	// InnerImports defines the AppArmor functions to import in the profile.
-	InnerImports []string
-}
-
 // generate creates an AppArmor profile from ProfileData.
 func generate(p *profileData, out io.Writer, macroExistsFn func(string) bool) error {
 	compiled, err := template.New("apparmor_profile").Parse(baseTemplate)
@@ -42,23 +28,23 @@ func generate(p *profileData, out io.Writer, macroExistsFn func(string) bool) er
 		return err
 	}
 
-	if p.DaemonProfile == "" {
-		p.DaemonProfile = "unconfined"
+	if p.daemonProfile == "" {
+		p.daemonProfile = "unconfined"
 	}
 
 	const abi = "abi/3.0"
 	if macroExistsFn(abi) {
-		p.Abi = abi
+		p.abi = abi
 	}
 
 	if macroExistsFn("tunables/global") {
-		p.Imports = append(p.Imports, "#include <tunables/global>")
+		p.imports = append(p.imports, "#include <tunables/global>")
 	} else {
-		p.Imports = append(p.Imports, "@{PROC}=/proc/")
+		p.imports = append(p.imports, "@{PROC}=/proc/")
 	}
 
 	if macroExistsFn("abstractions/base") {
-		p.InnerImports = append(p.InnerImports, "#include <abstractions/base>")
+		p.innerImports = append(p.innerImports, "#include <abstractions/base>")
 	}
 
 	return compiled.Execute(out, p)
@@ -87,8 +73,8 @@ func installDefault(ctx context.Context, name string) error {
 	}
 
 	p := profileData{
-		Name:          name,
-		DaemonProfile: daemonProfile,
+		name:          name,
+		daemonProfile: daemonProfile,
 	}
 
 	var buf bytes.Buffer
