@@ -48,7 +48,7 @@ profile {{.Name}} flags=(attach_disconnected,mediate_deleted) {
   # dockerd may send signals to container processes (for "docker kill").
   signal (receive) peer={{.DaemonProfile}},
   # Container processes may send signals amongst themselves.
-  signal (send,receive) peer={{.Name}},
+  signal (send,receive) peer={{.PeerName}},
 
   deny @{PROC}/* w,   # deny write for all files directly in /proc (not in a subdir)
   # deny write to files not in /proc/<number>/** or /proc/sys/**
@@ -71,7 +71,7 @@ profile {{.Name}} flags=(attach_disconnected,mediate_deleted) {
 
   # allow processes within the container to trace each other,
   # provided all other LSM and yama setting allow it.
-  ptrace (trace,tracedby,read,readby) peer={{.Name}},
+  ptrace (trace,tracedby,read,readby) peer={{.PeerName}},
 }
 `
 
@@ -99,6 +99,11 @@ func (d profileData) Name() string {
 	return quoteProfileName(d.name)
 }
 
+// PeerName returns the quoted AppArmor peer pattern matching the profile name.
+func (d profileData) PeerName() string {
+	return quotePeerName(d.name)
+}
+
 // Imports returns the AppArmor functions imported before the profile definition.
 func (d profileData) Imports() []string {
 	return d.imports
@@ -109,15 +114,25 @@ func (d profileData) InnerImports() []string {
 	return d.innerImports
 }
 
-// DaemonProfile returns the quoted AppArmor profile name of the daemon.
+// DaemonProfile returns the daemon's quoted peer pattern or the unconfined selector.
 func (d profileData) DaemonProfile() string {
 	if d.daemonProfile == "unconfined" {
 		return d.daemonProfile
 	}
-	return quoteProfileName(d.daemonProfile)
+	return quotePeerName(d.daemonProfile)
 }
 
-// quoteProfileName returns s as a quoted AppArmor profile name, escaping
+// quoteProfileName quotes a profile declaration name. Declaration names retain
+// AARE escapes, so only embedded quotes are escaped here. The parser still
+// decodes recognized backslash escape sequences.
+func quoteProfileName(s string) string {
+	if s == "" {
+		return ""
+	}
+	return `"` + strings.ReplaceAll(s, `"`, `\"`) + `"`
+}
+
+// quotePeerName returns s as a quoted AppArmor peer pattern, escaping
 // characters as needed to preserve the name literally rather than interpreting
 // it as an AARE pattern. Empty strings are returned unchanged.
 //
@@ -132,7 +147,7 @@ func (d profileData) DaemonProfile() string {
 //   - https://gitlab.com/apparmor/apparmor/-/blob/v5.0.2/parser/parser_lex.l#L286-287
 //   - https://gitlab.com/apparmor/apparmor/-/blob/v5.0.2/parser/parser_misc.c#L468-507
 //   - https://gitlab.com/apparmor/apparmor/-/blob/v5.0.2/parser/lib.c#L144-219
-func quoteProfileName(s string) string {
+func quotePeerName(s string) string {
 	if s == "" {
 		return ""
 	}

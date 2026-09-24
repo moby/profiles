@@ -316,6 +316,23 @@ func TestGenerateDefault(t *testing.T) {
 	}
 }
 
+func TestGenerateProfileName(t *testing.T) {
+	if _, err := exec.LookPath("apparmor_parser"); err != nil {
+		t.Skipf("apparmor_parser not available: %v", err)
+	}
+
+	const name = `foo"bar,*?[ab]{c,d}^\baz`
+	var profile strings.Builder
+	if err := generate(&profileData{name: name}, &profile, func(string) bool { return false }); err != nil {
+		t.Fatal(err)
+	}
+
+	names := validateProfile(t, profile.String())
+	if len(names) != 1 || names[0] != name {
+		t.Fatalf("parsed profile names = %q, want [%q]", names, name)
+	}
+}
+
 func createTestProfiles(b *testing.B, lines int, targetProfile string) string {
 	b.Helper()
 

@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestQuoteProfileName(t *testing.T) {
+func TestQuotePeerName(t *testing.T) {
 	tests := []struct {
 		doc   string
 		value string
@@ -71,8 +71,8 @@ func TestQuoteProfileName(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.doc, func(t *testing.T) {
-			if got := quoteProfileName(tc.value); got != tc.want {
-				t.Errorf("quoteProfileName(%q) = %q, want %q", tc.value, got, tc.want)
+			if got := quotePeerName(tc.value); got != tc.want {
+				t.Errorf("quotePeerName(%q) = %q, want %q", tc.value, got, tc.want)
 			}
 		})
 	}
