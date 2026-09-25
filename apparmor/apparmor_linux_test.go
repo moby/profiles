@@ -381,9 +381,13 @@ func validateProfile(t *testing.T, profile string) []string {
 	cmd := exec.CommandContext(ctx, "apparmor_parser", "-N", "-Q", "-K")
 	cmd.Stdin = strings.NewReader(profile)
 
-	out, err := cmd.CombinedOutput()
+	out, err := cmd.Output()
 	if err != nil {
-		t.Fatalf("parsing generated profile: %v\n%s", err, out)
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			t.Fatalf("parsing generated profile: %v\n%s", err, exitErr.Stderr)
+		}
+		t.Fatalf("parsing generated profile: %v", err)
 	}
 	return strings.Split(strings.TrimSuffix(string(out), "\n"), "\n")
 }
