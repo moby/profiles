@@ -212,10 +212,14 @@ func TestIsLoaded(t *testing.T) {
 }
 
 func TestGenerateDefault(t *testing.T) {
+	_, err := exec.LookPath("apparmor_parser")
+	apparmorParserAvailable := err == nil
+
 	tests := []struct {
 		name        string
 		data        profileData
 		macroExists func(string) bool
+		skipParse   bool
 	}{
 		{
 			name: "default",
@@ -264,6 +268,7 @@ func TestGenerateDefault(t *testing.T) {
 				Name:    "custom-imports",
 				Imports: []string{"#include <something/foo>", "#include <something/bar>"},
 			},
+			skipParse: true, // Skip parsing because we use non-existing includes.
 		},
 		{
 			name: "with-custom-inner-imports",
@@ -271,6 +276,7 @@ func TestGenerateDefault(t *testing.T) {
 				Name:         "custom-inner-imports",
 				InnerImports: []string{"#include <something/foo>", "#include <something/bar>"},
 			},
+			skipParse: true, // Skip parsing because we use non-existing includes.
 		},
 	}
 
@@ -287,7 +293,18 @@ func TestGenerateDefault(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			assertGolden(t, sb.String(), tc.name)
+			got := sb.String()
+			assertGolden(t, got, tc.name)
+
+			if tc.skipParse {
+				return
+			}
+			t.Run("validate", func(t *testing.T) {
+				if !apparmorParserAvailable {
+					t.Skip("apparmor_parser not available")
+				}
+				validateProfile(t, got)
+			})
 		})
 	}
 }
@@ -351,6 +368,24 @@ func hostSupportsAppArmor() bool {
 	}
 	buf, err := os.ReadFile("/sys/module/apparmor/parameters/enabled")
 	return err == nil && len(buf) > 0 && buf[0] == 'Y'
+}
+
+// validateProfile parses the profile with apparmor_parser without loading it
+// into the kernel, and returns the declared profile names.
+func validateProfile(t *testing.T, profile string) []string {
+	t.Helper()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "apparmor_parser", "-N", "-Q", "-K")
+	cmd.Stdin = strings.NewReader(profile)
+
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("parsing generated profile: %v\n%s", err, out)
+	}
+	return strings.Split(strings.TrimSuffix(string(out), "\n"), "\n")
 }
 
 func unloadProfile(t *testing.T, name string) {
