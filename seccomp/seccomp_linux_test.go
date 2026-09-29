@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"os"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -193,6 +194,24 @@ func TestLoadDefaultProfile(t *testing.T) {
 	if _, err := LoadProfile(string(f), &rs); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestDefaultProfileAllowsFanotifyInitWithoutSysAdmin(t *testing.T) {
+	spec := createSpec()
+	profile, err := GetDefaultProfile(&spec)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, syscall := range profile.Syscalls {
+		if slices.Contains(syscall.Names, "fanotify_init") {
+			if syscall.Action != specs.ActAllow {
+				t.Fatalf("expected fanotify_init action %s, got %s", specs.ActAllow, syscall.Action)
+			}
+			return
+		}
+	}
+	t.Fatal("fanotify_init is not allowed without CAP_SYS_ADMIN")
 }
 
 func TestUnmarshalDefaultProfile(t *testing.T) {
