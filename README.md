@@ -34,6 +34,10 @@ import (
 
 This project is licensed under the Apache License 2.0. See [LICENSE](LICENSE) for details.
 
+## AI-assisted contributions
+
+AI-assisted contributions to this repository must follow the [Moby and Docker AI usage policy](https://github.com/moby/.github/blob/main/AI_POLICY.md).
+
 ## Security
 
 For security issues, please follow the [Moby security policy](https://github.com/moby/moby/security/policy).
