@@ -278,13 +278,6 @@ func TestGenerateDefault(t *testing.T) {
 			},
 			skipParse: true, // Skip parsing because we use non-existing includes.
 		},
-		{
-			name: "with-special-characters",
-			data: profileData{
-				name:          `foo"bar,*?[ab]{c,d}^\baz`,
-				daemonProfile: `daemon"bar,*?[ab]{c,d}^\baz`,
-			},
-		},
 	}
 
 	for _, tc := range tests {
@@ -316,6 +309,53 @@ func TestGenerateDefault(t *testing.T) {
 	}
 }
 
+func TestGenerateSpecialCharacters(t *testing.T) {
+	var profile strings.Builder
+	data := profileData{
+		name:          `foo"bar,*?[ab]{c,d}^\baz`,
+		daemonProfile: `daemon"bar,*?[ab]{c,d}^\baz`,
+	}
+	if err := generate(&data, &profile, func(string) bool { return false }); err != nil {
+		t.Fatal(err)
+	}
+
+	const (
+		wantDeclaration   = `"foo\"bar,*?[ab]{c,d}^\baz"`
+		wantContainerPeer = `"foo\"bar\,\*\?\[ab\]\{c\,d\}\^\\baz"`
+		wantDaemonPeer    = `"daemon\"bar\,\*\?\[ab\]\{c\,d\}\^\\baz"`
+	)
+	tests := []struct {
+		name string
+		want string
+	}{
+		{
+			name: "profile declaration",
+			want: "profile " + wantDeclaration + " ",
+		},
+		{
+			name: "daemon signal peer",
+			want: "signal (receive) peer=" + wantDaemonPeer + ",",
+		},
+		{
+			name: "container signal peer",
+			want: "signal (send,receive) peer=" + wantContainerPeer + ",",
+		},
+		{
+			name: "container ptrace peer",
+			want: "ptrace (trace,tracedby,read,readby) peer=" + wantContainerPeer + ",",
+		},
+	}
+
+	got := profile.String()
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if !strings.Contains(got, tc.want) {
+				t.Errorf("generated profile is missing %q", tc.want)
+			}
+		})
+	}
+}
+
 func TestGenerateProfileName(t *testing.T) {
 	if _, err := exec.LookPath("apparmor_parser"); err != nil {
 		t.Skipf("apparmor_parser not available: %v", err)
@@ -323,7 +363,11 @@ func TestGenerateProfileName(t *testing.T) {
 
 	const name = `foo"bar,*?[ab]{c,d}^\baz`
 	var profile strings.Builder
-	if err := generate(&profileData{name: name}, &profile, func(string) bool { return false }); err != nil {
+	data := profileData{
+		name:          name,
+		daemonProfile: `daemon"bar,*?[ab]{c,d}^\baz`,
+	}
+	if err := generate(&data, &profile, func(string) bool { return false }); err != nil {
 		t.Fatal(err)
 	}
 
