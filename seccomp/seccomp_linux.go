@@ -96,11 +96,23 @@ func setupSeccomp(config *Seccomp, rs *specs.Spec) (*specs.LinuxSeccomp, error) 
 		arch      = goToNative[runtime.GOARCH]
 	)
 	if seccompArch, ok := nativeToSeccomp[arch]; ok {
-		for _, a := range config.ArchMap {
-			if a.Arch == seccompArch {
-				newConfig.Architectures = append(newConfig.Architectures, a.Arch)
-				newConfig.Architectures = append(newConfig.Architectures, a.SubArches...)
-				break
+		// The native architecture must always be present so that libseccomp can
+		// attach the -ENOSYS stub to it; otherwise unknown syscalls return
+		// -EPERM instead of -ENOSYS (see moby/moby#48471 and the equivalent fix
+		// in opencontainers/runc#4219). This is only relevant when the profile
+		// is expanded from archMap (the default-profile path); profiles that
+		// explicitly list Architectures are left untouched.
+		if len(config.ArchMap) > 0 {
+			if !slices.Contains(newConfig.Architectures, seccompArch) {
+				newConfig.Architectures = append(newConfig.Architectures, seccompArch)
+			}
+			// Preserve the native arch's sub-architectures if the profile
+			// lists them explicitly.
+			for _, a := range config.ArchMap {
+				if a.Arch == seccompArch {
+					newConfig.Architectures = append(newConfig.Architectures, a.SubArches...)
+					break
+				}
 			}
 		}
 	}
