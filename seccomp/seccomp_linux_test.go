@@ -313,3 +313,11 @@ func createSpec(caps ...string) specs.Spec {
 	}
 	return rs
 }
+
+func TestGoToNativeHasSeccompArch(t *testing.T) {
+	for goarch, native := range goToNative {
+		if _, ok := nativeToSeccomp[native]; !ok {
+			t.Errorf("goToNative[%q] = %q has no entry in nativeToSeccomp", goarch, native)
+		}
+	}
+}
