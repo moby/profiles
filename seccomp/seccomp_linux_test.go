@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"os"
 	"reflect"
+	"runtime"
+	"slices"
 	"strings"
 	"testing"
 
@@ -312,4 +314,67 @@ func createSpec(caps ...string) specs.Spec {
 		rs.Process.Capabilities.Bounding = append(rs.Process.Capabilities.Bounding, caps...)
 	}
 	return rs
+}
+
+// TestSetupSeccompIncludesNativeArch is a regression test for
+// https://github.com/moby/moby/issues/48471: when the host's native
+// architecture is not listed in the profile's archMap, setupSeccomp must
+// still include it in the generated Architectures list. Otherwise libseccomp
+// has no arch to attach the -ENOSYS stub to, and unknown syscalls wrongly
+// return -EPERM instead of -ENOSYS (e.g. on ppc64le before runc 1.2).
+func TestSetupSeccompIncludesNativeArch(t *testing.T) {
+	nativeArch, ok := nativeToSeccomp[goToNative[runtime.GOARCH]]
+	if !ok {
+		t.Skipf("native arch %q is not mapped to a seccomp arch; nothing to verify", runtime.GOARCH)
+	}
+
+	// A profile whose archMap deliberately omits the native architecture
+	// (mirrors the historical default profile that left ppc64le out): on a
+	// host whose native arch is amd64, supply only an unrelated archMap entry.
+	config := &Seccomp{
+		LinuxSeccomp: specs.LinuxSeccomp{DefaultAction: "SCMP_ACT_ERRNO"},
+		ArchMap: []Architecture{
+			{Arch: specs.ArchAARCH64, SubArches: []specs.Arch{specs.ArchARM}},
+		},
+	}
+
+	rs := createSpec()
+	got, err := setupSeccomp(config, &rs)
+	if err != nil {
+		t.Fatalf("setupSeccomp returned an unexpected error: %v", err)
+	}
+	if got == nil {
+		t.Fatal("setupSeccomp returned a nil profile")
+	}
+
+	if !slices.Contains(got.Architectures, nativeArch) {
+		t.Fatalf("expected native architecture %q to be present in generated Architectures, got %+v", nativeArch, got.Architectures)
+	}
+}
+
+// TestSetupSeccompDoesNotInjectNativeArchWithoutArchMap verifies the fix is
+// scoped to the archMap (default-profile) path: when a profile explicitly
+// lists its own Architectures and has no archMap, setupSeccomp must not
+// inject the native arch (preserving explicit-profile behavior).
+func TestSetupSeccompDoesNotInjectNativeArchWithoutArchMap(t *testing.T) {
+	config := &Seccomp{
+		LinuxSeccomp: specs.LinuxSeccomp{
+			DefaultAction: "SCMP_ACT_ERRNO",
+			Architectures: []specs.Arch{specs.ArchAARCH64},
+		},
+	}
+
+	rs := createSpec()
+	got, err := setupSeccomp(config, &rs)
+	if err != nil {
+		t.Fatalf("setupSeccomp returned an unexpected error: %v", err)
+	}
+	if got == nil {
+		t.Fatal("setupSeccomp returned a nil profile")
+	}
+
+	nativeArch := nativeToSeccomp[goToNative[runtime.GOARCH]]
+	if slices.Contains(got.Architectures, nativeArch) {
+		t.Fatalf("native architecture %q must not be injected when the profile lists its own Architectures, got %+v", nativeArch, got.Architectures)
+	}
 }
