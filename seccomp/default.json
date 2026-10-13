@@ -56,6 +56,18 @@
 		{
 			"architecture": "SCMP_ARCH_LOONGARCH64",
 			"subArchitectures": null
+		},
+		{
+			"architecture": "SCMP_ARCH_PPC64LE",
+			"subArchitectures": null
+		},
+		{
+			"architecture": "SCMP_ARCH_PPC64",
+			"subArchitectures": null
+		},
+		{
+			"architecture": "SCMP_ARCH_PPC",
+			"subArchitectures": null
 		}
 	],
 	"syscalls": [
