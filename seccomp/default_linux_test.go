@@ -124,3 +124,23 @@ func TestDefaultSyscalls(t *testing.T) {
 
 	assertDeepEqual(t, want, socketSyscalls())
 }
+
+func TestSocketpairSyscalls(t *testing.T) {
+	socketpairTestSyscall := func(domain uint64) *Syscall {
+		return &Syscall{
+			LinuxSyscall: specs.LinuxSyscall{
+				Names:  []string{"socketpair"},
+				Action: specs.ActAllow,
+				Args: []specs.LinuxSeccompArg{
+					{Index: 0, Value: domain, Op: specs.OpEqualTo},
+				},
+			},
+		}
+	}
+	want := []*Syscall{
+		socketpairTestSyscall(unix.AF_UNIX),
+		socketpairTestSyscall(unix.AF_TIPC),
+	}
+
+	assertDeepEqual(t, want, socketpairSyscalls())
+}

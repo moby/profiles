@@ -179,6 +179,34 @@ func socketSyscallsForDomains(domains []uint64) []*Syscall {
 	return syscalls
 }
 
+// allowedSocketpairDomains lists the domains for which socketpair(2) is allowed.
+// Only AF_UNIX (a.k.a. AF_LOCAL) and AF_TIPC implement socketpair in practice;
+// restricting it avoids exposing the other protocol families' socketpair paths.
+var allowedSocketpairDomains = []uint64{
+	unix.AF_UNIX,
+	unix.AF_TIPC,
+}
+
+func socketpairSyscalls() []*Syscall {
+	syscalls := make([]*Syscall, 0, len(allowedSocketpairDomains))
+	for _, domain := range allowedSocketpairDomains {
+		syscalls = append(syscalls, &Syscall{
+			LinuxSyscall: specs.LinuxSyscall{
+				Names:  []string{"socketpair"},
+				Action: specs.ActAllow,
+				Args: []specs.LinuxSeccompArg{
+					{
+						Index: 0,
+						Value: domain,
+						Op:    specs.OpEqualTo,
+					},
+				},
+			},
+		})
+	}
+	return syscalls
+}
+
 func socketSyscall(value uint64, op specs.LinuxSeccompOperator) *Syscall {
 	return &Syscall{
 		LinuxSyscall: specs.LinuxSyscall{
@@ -554,7 +582,6 @@ func DefaultProfile() *Seccomp {
 					"sigprocmask",
 					"sigreturn",
 					"socketcall",
-					"socketpair",
 					"splice",
 					"stat",
 					"stat64",
@@ -628,6 +655,9 @@ func DefaultProfile() *Seccomp {
 	// and cannot be filtered by seccomp. Because socketcall(2) is allowed above,
 	// this domain allow-list applies only to the direct socket syscall.
 	syscalls = append(syscalls, socketSyscalls()...)
+	// Allow socketpair(2) only for AF_UNIX and AF_TIPC. The same socketcall(2)
+	// caveat as above applies.
+	syscalls = append(syscalls, socketpairSyscalls()...)
 	syscalls = append(syscalls, []*Syscall{
 		{
 			LinuxSyscall: specs.LinuxSyscall{
