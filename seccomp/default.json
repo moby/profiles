@@ -294,7 +294,6 @@
 				"renameat",
 				"renameat2",
 				"restart_syscall",
-				"riscv_hwprobe",
 				"rmdir",
 				"rseq",
 				"rt_sigaction",
@@ -986,7 +985,8 @@
 		},
 		{
 			"names": [
-				"riscv_flush_icache"
+				"riscv_flush_icache",
+				"riscv_hwprobe"
 			],
 			"action": "SCMP_ACT_ALLOW",
 			"includes": {
