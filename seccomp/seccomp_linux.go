@@ -103,6 +103,12 @@ func setupSeccomp(config *Seccomp, rs *specs.Spec) (*specs.LinuxSeccomp, error) 
 				break
 			}
 		}
+		// Ensure the runtime arch is in the profile so libseccomp returns
+		// -ENOSYS (letting glibc fall back to older syscalls) instead of -EPERM
+		// for syscalls unknown to the profile.
+		if !slices.Contains(newConfig.Architectures, seccompArch) {
+			newConfig.Architectures = append(newConfig.Architectures, seccompArch)
+		}
 	}
 
 Loop:

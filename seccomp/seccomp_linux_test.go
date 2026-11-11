@@ -5,8 +5,11 @@ package seccomp
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"reflect"
+	"runtime"
+	"slices"
 	"strings"
 	"testing"
 
@@ -35,6 +38,7 @@ func TestLoadProfile(t *testing.T) {
 	expected := specs.LinuxSeccomp{
 		DefaultAction:   specs.ActErrno,
 		DefaultErrnoRet: &expectedDefaultErrno,
+		Architectures:   runtimeArchSlice(),
 		Syscalls: []specs.LinuxSyscall{
 			{
 				Names:  []string{"clone"},
@@ -83,6 +87,7 @@ func TestLoadProfileWithDefaultErrnoRet(t *testing.T) {
 	expected := specs.LinuxSeccomp{
 		DefaultAction:   specs.ActErrno,
 		DefaultErrnoRet: &expectedErrnoRet,
+		Architectures:   runtimeArchSlice(),
 	}
 
 	assertDeepEqual(t, expected, *p)
@@ -102,6 +107,7 @@ func TestLoadProfileWithListenerPath(t *testing.T) {
 
 	expected := specs.LinuxSeccomp{
 		DefaultAction:    specs.ActErrno,
+		Architectures:    runtimeArchSlice(),
 		ListenerPath:     "/var/run/seccompaget.sock",
 		ListenerMetadata: "opaque-metadata",
 	}
@@ -113,6 +119,7 @@ func TestLoadProfileWithFlag(t *testing.T) {
 	profile := `{"defaultAction": "SCMP_ACT_ERRNO", "flags": ["SECCOMP_FILTER_FLAG_SPEC_ALLOW", "SECCOMP_FILTER_FLAG_LOG"]}`
 	expected := specs.LinuxSeccomp{
 		DefaultAction: specs.ActErrno,
+		Architectures: runtimeArchSlice(),
 		Flags:         []specs.LinuxSeccompFlag{"SECCOMP_FILTER_FLAG_SPEC_ALLOW", "SECCOMP_FILTER_FLAG_LOG"},
 	}
 	rs := createSpec()
@@ -171,6 +178,9 @@ func TestLoadLegacyProfile(t *testing.T) {
 		t.Fatalf("expected default action %s, got %s", specs.ActErrno, p.DefaultAction)
 	}
 	expectedArches := []specs.Arch{"SCMP_ARCH_X86_64", "SCMP_ARCH_X86", "SCMP_ARCH_X32"}
+	if runtimeArch, ok := nativeToSeccomp[goToNative[runtime.GOARCH]]; ok && !slices.Contains(expectedArches, runtimeArch) {
+		expectedArches = append(expectedArches, runtimeArch)
+	}
 	assertDeepEqual(t, expectedArches, p.Architectures)
 
 	if expected := 311; len(p.Syscalls) != expected {
@@ -299,6 +309,121 @@ func TestLoadConditional(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSetupSeccompRuntimeArchAlwaysIncluded(t *testing.T) {
+	runtimeArch, ok := nativeToSeccomp[goToNative[runtime.GOARCH]]
+	if !ok {
+		t.Skipf("no seccomp arch mapping for GOARCH=%s", runtime.GOARCH)
+	}
+
+	otherArch := specs.ArchMIPS
+	if otherArch == runtimeArch {
+		otherArch = specs.ArchS390
+	}
+
+	t.Run("empty architectures get runtime arch added", func(t *testing.T) {
+		rs := createSpec()
+		p, err := LoadProfile(`{"defaultAction":"SCMP_ACT_ERRNO","architectures":[]}`, &rs)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !slices.Contains(p.Architectures, runtimeArch) {
+			t.Fatalf("expected runtime arch %q in architectures, got %v", runtimeArch, p.Architectures)
+		}
+	})
+
+	t.Run("foreign architectures get runtime arch appended", func(t *testing.T) {
+		profile := fmt.Sprintf(`{"defaultAction":"SCMP_ACT_ERRNO","architectures":[%q]}`, string(otherArch))
+		rs := createSpec()
+		p, err := LoadProfile(profile, &rs)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !slices.Contains(p.Architectures, runtimeArch) {
+			t.Fatalf("expected runtime arch %q in architectures, got %v", runtimeArch, p.Architectures)
+		}
+		if !slices.Contains(p.Architectures, otherArch) {
+			t.Fatalf("expected %q to remain in architectures, got %v", otherArch, p.Architectures)
+		}
+	})
+
+	t.Run("runtime arch already present is not duplicated", func(t *testing.T) {
+		profile := fmt.Sprintf(`{"defaultAction":"SCMP_ACT_ERRNO","architectures":[%q]}`, string(runtimeArch))
+		rs := createSpec()
+		p, err := LoadProfile(profile, &rs)
+		if err != nil {
+			t.Fatal(err)
+		}
+		count := 0
+		for _, a := range p.Architectures {
+			if a == runtimeArch {
+				count++
+			}
+		}
+		if count != 1 {
+			t.Fatalf("expected runtime arch %q exactly once, got %d (architectures: %v)", runtimeArch, count, p.Architectures)
+		}
+	})
+
+	t.Run("archMap-supplied runtime arch is not duplicated", func(t *testing.T) {
+		profile := fmt.Sprintf(
+			`{"defaultAction":"SCMP_ACT_ERRNO","archMap":[{"architecture":%q,"subArchitectures":[]}]}`,
+			string(runtimeArch),
+		)
+		rs := createSpec()
+		p, err := LoadProfile(profile, &rs)
+		if err != nil {
+			t.Fatal(err)
+		}
+		count := 0
+		for _, a := range p.Architectures {
+			if a == runtimeArch {
+				count++
+			}
+		}
+		if count != 1 {
+			t.Fatalf("expected runtime arch %q exactly once after archMap expansion, got %d (architectures: %v)", runtimeArch, count, p.Architectures)
+		}
+	})
+}
+
+func TestArchesIncludesPPC(t *testing.T) {
+	got := arches()
+	for _, want := range []specs.Arch{specs.ArchPPC64LE, specs.ArchPPC64, specs.ArchPPC} {
+		found := false
+		for _, a := range got {
+			if a.Arch == want {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("arches() missing %q", want)
+		}
+	}
+}
+
+func TestGetDefaultProfileIncludesRuntimeArch(t *testing.T) {
+	runtimeArch, ok := nativeToSeccomp[goToNative[runtime.GOARCH]]
+	if !ok {
+		t.Skipf("no seccomp arch mapping for GOARCH=%s", runtime.GOARCH)
+	}
+	rs := createSpec()
+	p, err := GetDefaultProfile(&rs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(p.Architectures, runtimeArch) {
+		t.Fatalf("expected default profile to include runtime arch %q, got %v", runtimeArch, p.Architectures)
+	}
+}
+
+func runtimeArchSlice() []specs.Arch {
+	if a, ok := nativeToSeccomp[goToNative[runtime.GOARCH]]; ok {
+		return []specs.Arch{a}
+	}
+	return nil
 }
 
 // createSpec() creates a minimum spec for testing
