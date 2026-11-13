@@ -504,7 +504,6 @@ func DefaultProfile() *Seccomp {
 					"renameat",
 					"renameat2",
 					"restart_syscall",
-					"riscv_hwprobe", // kernel v6.12, libseccomp v2.6.0
 					"rmdir",
 					"rseq",
 					"rt_sigaction",
@@ -791,6 +790,7 @@ func DefaultProfile() *Seccomp {
 			LinuxSyscall: specs.LinuxSyscall{
 				Names: []string{
 					"riscv_flush_icache",
+					"riscv_hwprobe", // kernel v6.12, libseccomp v2.6.0
 				},
 				Action: specs.ActAllow,
 			},
