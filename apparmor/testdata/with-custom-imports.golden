@@ -57,6 +57,13 @@ profile "custom-imports" flags=(attach_disconnected,mediate_deleted) {
   signal (receive) peer=unconfined,
   # Container processes may send signals amongst themselves.
   signal (send,receive) peer="custom-imports",
+  # With kernel.apparmor_restrict_unprivileged_unconfined=1, an unprivileged
+  # profile change is converted to stacking, producing a stacked label such
+  # as "<name>//&unconfined".
+  # Allow signals to peers with this stacked label as well.
+  signal (send,receive) peer="custom-imports//&unconfined",
   # allow processes within the container to trace each other, provided all other LSM and yama settings allow it.
   ptrace (trace,tracedby,read,readby) peer="custom-imports",
+  # Same stacked-label peer as the signal rule above.
+  ptrace (trace,tracedby,read,readby) peer="custom-imports//&unconfined",
 }
