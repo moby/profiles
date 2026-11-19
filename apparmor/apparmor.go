@@ -13,23 +13,25 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"text/template"
 )
 
 // profileDirectory is the file store for AppArmor profiles and macros.
 const profileDirectory = "/etc/apparmor.d"
 
-// generate creates an AppArmor profile from ProfileData.
+// generate creates an AppArmor profile from profileData.
 func generate(p *profileData, out io.Writer, macroExistsFn func(string) bool) error {
-	compiled, err := template.New("apparmor_profile").Parse(baseTemplate)
-	if err != nil {
-		return err
+	// "unconfined" is a special AppArmor selector and must not be quoted.
+	daemonPeer := "unconfined"
+	if p.daemonProfile != "" && p.daemonProfile != "unconfined" {
+		daemonPeer = quotePeerName(p.daemonProfile)
 	}
 
-	if p.daemonProfile == "" {
-		p.daemonProfile = "unconfined"
-	}
-
+	// Explicitly use ABI 3.0 when available. In newer AppArmor ABIs,
+	// "network" no longer includes "network unix", which would deny
+	// access to Unix sockets. ABI 3.0 also supports older LTS distros.
+	//
+	// See https://gitlab.com/apparmor/apparmor/-/issues/561
+	// and https://github.com/containerd/containerd/issues/12726
 	const abi = "abi/3.0"
 	if macroExistsFn(abi) {
 		p.abi = abi
@@ -45,7 +47,94 @@ func generate(p *profileData, out io.Writer, macroExistsFn func(string) bool) er
 		p.innerImports = append(p.innerImports, "#include <abstractions/base>")
 	}
 
-	return compiled.Execute(out, p)
+	p.peerRules = []peerRule{
+		{
+			comment:     "Host (privileged) processes may send signals to container processes.",
+			kind:        "signal",
+			permissions: "receive",
+			peer:        "unconfined",
+		},
+		{
+			comment:     `runc may send signals to container processes (for "docker stop").`,
+			kind:        "signal",
+			permissions: "receive",
+			peer:        "runc",
+		},
+		{
+			comment:     `crun may send signals to container processes (for "docker stop").`,
+			kind:        "signal",
+			permissions: "receive",
+			peer:        "crun",
+		},
+		{
+			comment:     `dockerd may send signals to container processes (for "docker kill").`,
+			kind:        "signal",
+			permissions: "receive",
+			peer:        daemonPeer,
+		},
+		{
+			comment:     "Container processes may send signals amongst themselves.",
+			kind:        "signal",
+			permissions: "send,receive",
+			peer:        quotePeerName(p.name),
+		},
+		{
+			kind:        "ptrace",
+			comment:     "allow processes within the container to trace each other, provided all other LSM and yama settings allow it.",
+			permissions: "trace,tracedby,read,readby",
+			peer:        quotePeerName(p.name),
+		},
+	}
+
+	return render(p, out)
+}
+
+// render writes the AppArmor profile using the configured profile data.
+func render(p *profileData, out io.Writer) error {
+	abi := ""
+	if p.abi != "" {
+		abi = fmt.Sprintf("abi <%s>,\n\n", p.abi)
+	}
+
+	replacer := strings.NewReplacer(
+		"{{ABI}}\n", abi,
+		"{{Imports}}\n", formatImports(p.imports, ""),
+		"{{Name}}", quoteProfileName(p.name),
+		"{{InnerImports}}\n", formatImports(p.innerImports, "  "),
+		"{{PeerRules}}\n", formatPeerRules(p.peerRules),
+	)
+
+	_, err := io.WriteString(out, replacer.Replace(profileTemplate))
+	return err
+}
+
+// formatImports formats AppArmor imports with the given indentation.
+func formatImports(imports []string, indent string) string {
+	if len(imports) == 0 {
+		return ""
+	}
+
+	var b strings.Builder
+	for _, imp := range imports {
+		b.WriteString(indent)
+		b.WriteString(imp)
+		b.WriteByte('\n')
+	}
+	b.WriteByte('\n')
+	return b.String()
+}
+
+// formatPeerRules formats the AppArmor signal and ptrace rules.
+func formatPeerRules(rules []peerRule) string {
+	var b strings.Builder
+	for _, rule := range rules {
+		if rule.comment != "" {
+			fmt.Fprintf(&b, "  # %s\n", rule.comment)
+		}
+		fmt.Fprintf(&b, "  %s (%s) peer=%s,\n",
+			rule.kind, rule.permissions, rule.peer)
+	}
+	return b.String()
 }
 
 // macroExists checks if the passed macro exists.
