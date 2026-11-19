@@ -91,47 +91,50 @@ func generate(p *profileData, out io.Writer, macroExistsFn func(string) bool) er
 
 // render writes the AppArmor profile using the configured profile data.
 func render(p *profileData, out io.Writer) error {
-	var b strings.Builder
-
-	b.WriteString(profileHeader)
-	b.WriteByte('\n')
-
+	abi := ""
 	if p.abi != "" {
-		_, _ = fmt.Fprintf(&b, "abi <%s>,\n\n", p.abi)
+		abi = fmt.Sprintf("abi <%s>,\n\n", p.abi)
 	}
 
-	if len(p.imports) > 0 {
-		for _, imp := range p.imports {
-			b.WriteString(imp + "\n")
-		}
-		b.WriteByte('\n')
-	}
+	replacer := strings.NewReplacer(
+		"{{ABI}}\n", abi,
+		"{{Imports}}\n", formatImports(p.imports, ""),
+		"{{Name}}", quoteProfileName(p.name),
+		"{{InnerImports}}\n", formatImports(p.innerImports, "  "),
+		"{{PeerRules}}\n", formatPeerRules(p.peerRules),
+	)
 
-	// Profile declaration and optional abstractions.
-	_, _ = fmt.Fprintf(&b, "profile %s flags=(attach_disconnected,mediate_deleted) {\n", quoteProfileName(p.name))
-
-	if len(p.innerImports) > 0 {
-		for _, imp := range p.innerImports {
-			_, _ = fmt.Fprintf(&b, "  %s\n", imp)
-		}
-		b.WriteByte('\n')
-	}
-
-	// Static profile rules.
-	b.WriteString(profileRules)
-
-	// Peer-specific permissions.
-	for _, rule := range p.peerRules {
-		if rule.comment != "" {
-			_, _ = fmt.Fprintf(&b, "  # %s\n", rule.comment)
-		}
-		_, _ = fmt.Fprintf(&b, "  %s (%s) peer=%s,\n", rule.kind, rule.permissions, rule.peer)
-	}
-
-	b.WriteString("}\n")
-
-	_, err := io.WriteString(out, b.String())
+	_, err := io.WriteString(out, replacer.Replace(profileTemplate))
 	return err
+}
+
+// formatImports formats AppArmor imports with the given indentation.
+func formatImports(imports []string, indent string) string {
+	if len(imports) == 0 {
+		return ""
+	}
+
+	var b strings.Builder
+	for _, imp := range imports {
+		b.WriteString(indent)
+		b.WriteString(imp)
+		b.WriteByte('\n')
+	}
+	b.WriteByte('\n')
+	return b.String()
+}
+
+// formatPeerRules formats the AppArmor signal and ptrace rules.
+func formatPeerRules(rules []peerRule) string {
+	var b strings.Builder
+	for _, rule := range rules {
+		if rule.comment != "" {
+			fmt.Fprintf(&b, "  # %s\n", rule.comment)
+		}
+		fmt.Fprintf(&b, "  %s (%s) peer=%s,\n",
+			rule.kind, rule.permissions, rule.peer)
+	}
+	return b.String()
 }
 
 // macroExists checks if the passed macro exists.
