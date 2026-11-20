@@ -126,3 +126,66 @@ jobs:
 
       - name: Validate seccomp code generation
         run: make validate-codegen
+
+  moby:
+    name: Test with Moby master
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        path: profiles
+
+    - name: Checkout Moby
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        repository: moby/moby
+        ref: master
+        path: moby
+
+    - name: Set up Go
+      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      with:
+        go-version-file: moby/go.mod
+        cache-dependency-path: moby/go.sum
+
+    - name: Use profiles from this checkout
+      working-directory: moby
+      run: |
+        go mod edit \
+          -replace github.com/moby/profiles/apparmor=../profiles/apparmor \
+          -replace github.com/moby/profiles/seccomp=../profiles/seccomp
+        go mod tidy
+        go mod vendor
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+    - name: Build Moby development image
+      uses: docker/bake-action@018cb6412ab401ebaa809aa5f85966b74628600f # v7.4.0
+      with:
+        source: ./moby
+        targets: dev
+        load: true
+        set: |
+          dev.cache-from=type=gha,scope=moby-dev-amd64
+          dev.cache-to=type=gha,scope=moby-dev-amd64,mode=max
+
+    # Moby only logs a failure to load docker-default and then reuses any
+    # profile already loaded under that name, such as the one the runner's
+    # own Docker installed. Unload it so a profile from this checkout that
+    # fails to load makes the tests fail instead of being masked.
+    - name: Unload the runner's docker-default AppArmor profile
+      run: |
+        if sudo grep -q '^docker-default ' /sys/kernel/security/apparmor/profiles; then
+          echo -n docker-default | sudo tee /sys/kernel/security/apparmor/.remove > /dev/null
+        fi
+
+    - name: Run Moby seccomp and AppArmor integration tests
+      working-directory: moby
+      env:
+        TEST_INTEGRATION_DIR: ./integration/security
+        TEST_SKIP_INTEGRATION_CLI: 1
+      run: make -o build test-integration
